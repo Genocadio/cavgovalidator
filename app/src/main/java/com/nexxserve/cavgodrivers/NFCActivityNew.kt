@@ -5,6 +5,7 @@ import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -62,14 +63,13 @@ fun NFCScanPage() {
                 override fun onQRCodeScanned(data: String?) {
                     data?.let {
                         qrData = """
-                QR Code Detected:
-                Data: $it
-            """.trimIndent()
+                            QR Code Detected:
+                            Data: $it
+                        """.trimIndent()
                         combinedScanData = "$tagData\n\n$qrData"
                     }
                 }
             })
-
         }
     }
 
@@ -105,14 +105,20 @@ fun NFCScanPage() {
                     .fillMaxSize()
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center
+                verticalArrangement = Arrangement.Top
             ) {
-                Text(
-                    text = "Place your NFC tag near the device or scan a QR code.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    textAlign = TextAlign.Center
-                )
+                // QR Code Scanner Preview - takes top half of the screen
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(300.dp) // Adjust this value as needed for your layout
+                ) {
+                    CameraPreviewView()  // Placeholder for the camera preview
+                }
+
                 Spacer(modifier = Modifier.height(16.dp))
+
+                // Display QR scan data or NFC info
                 if (combinedScanData.isNotEmpty()) {
                     Text(
                         text = combinedScanData,
@@ -120,9 +126,32 @@ fun NFCScanPage() {
                         textAlign = TextAlign.Center
                     )
                 }
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Text(
+                    text = "Place your NFC tag near the device or scan a QR code.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center
+                )
             }
         }
     )
 }
+
+// This would be a placeholder for actual camera preview logic
+@Composable
+fun CameraPreviewView() {
+    // Here you would integrate your CameraPreview logic
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.primary)  // Use 'primary' instead of 'primaryVariant'
+    ) {
+        // Actual camera view goes here, possibly using a library like CameraX or custom CameraPreview composable.
+        Text(text = "QR Camera Preview", color = MaterialTheme.colorScheme.onPrimary)
+    }
+}
+
 
 fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }

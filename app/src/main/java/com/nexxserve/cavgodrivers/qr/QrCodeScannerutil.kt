@@ -45,6 +45,7 @@ class QRCodeScannerUtil(context: Context?) {
      */
     fun setQRCodeScanListener(listener: QRCodeScanListener?) {
         this.qrCodeScanListener = listener
+        // Set the listener to start receiving scanned data
         decodeReader.setDecodeReaderListener { data ->
             if (data != null && data.isNotEmpty()) {
                 val scannedData = String(data)
@@ -52,9 +53,6 @@ class QRCodeScannerUtil(context: Context?) {
 
                 // Notify the listener
                 qrCodeScanListener?.onQRCodeScanned(scannedData)
-
-                // Reinitialize listener to keep listening after a scan
-                resetScanner()
             } else {
                 Log.e("QRCodeScannerUtil", "Empty or null data received.")
             }
@@ -75,20 +73,6 @@ class QRCodeScannerUtil(context: Context?) {
         } else {
             Log.e("QRCodeScannerUtil", "Failed to send command. Code: $resultCode")
             return false
-        }
-    }
-
-    /**
-     * Resets the scanner listener to continue listening for QR codes.
-     */
-    private fun resetScanner() {
-        if (isScannerOpen) {
-            decodeReader.setDecodeReaderListener { data ->
-                if (data != null && data.isNotEmpty()) {
-                    val scannedData = String(data)
-                    qrCodeScanListener?.onQRCodeScanned(scannedData)
-                }
-            }
         }
     }
 
