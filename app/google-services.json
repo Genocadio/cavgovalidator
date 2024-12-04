@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1022086934727",
+    "project_id": "cavgo-41791",
+    "storage_bucket": "cavgo-41791.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1022086934727:android:1000c149b4b35b93b28ee2",
+        "android_client_info": {
+          "package_name": "com.nexxserve.cavgodrivers"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBdesbeyaRZ0xOSIF1HElQhVmmBMjapsss"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

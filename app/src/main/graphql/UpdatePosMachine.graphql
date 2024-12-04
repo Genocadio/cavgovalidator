@@ -1,0 +1,12 @@
+mutation UpdatePosMachine($serialNumber: String, $plateNumber: String) {
+    updatePosMachine(serialNumber: $serialNumber, plateNumber: $plateNumber) {
+        message
+        success
+        data {
+            linkedCar {
+                id
+            }
+            status
+        }
+    }
+}

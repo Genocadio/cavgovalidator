@@ -1,0 +1,16 @@
+query Data {
+    getLocations {
+        message
+        success
+        data {
+            id
+            name
+            address
+            coordinates {
+                lat
+                lng
+            }
+            createdAt
+        }
+    }
+}

@@ -1,0 +1,18 @@
+    mutation RegisterPosMachine($serialNumber: String!, $carPlate: String!) {
+        registerPosMachine(serialNumber: $serialNumber, carPlate: $carPlate) {
+            success
+            message
+            data {
+                id
+                lastActivityDate
+                linkedCar {
+                    id
+                    plateNumber
+                }
+                user {
+                    email
+                }
+                status
+            }
+        }
+    }
