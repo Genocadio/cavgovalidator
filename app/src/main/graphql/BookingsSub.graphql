@@ -1,0 +1,37 @@
+subscription BookingAdded($tripId: ID!) {
+    bookingAdded(tripId: $tripId) {
+        id
+        trip {
+            id
+            boardingTime
+            status
+            availableSeats
+            reverseRoute
+            createdAt
+            route {
+                origin {
+                    name
+                }
+            }
+        }
+        user {
+            lastName
+            id
+            firstName
+            email
+            phoneNumber
+        }
+        status
+        createdAt
+        destination
+        ticket {
+            qrCodeData
+            nfcId
+            id
+            validFrom
+            validUntil
+        }
+        numberOfTickets
+        price
+    }
+}

@@ -5,7 +5,6 @@ import android.content.Intent
 import android.provider.Settings
 import android.widget.Toast
 import androidx.activity.ComponentActivity
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -99,23 +98,15 @@ fun NFCScanPage() {
         topBar = {
             TopAppBar(title = { Text("NFC & QR Scan") })
         },
-        content = {
+        content = { paddingValues ->
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .padding(paddingValues)
                     .padding(16.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Top
             ) {
-                // QR Code Scanner Preview - takes top half of the screen
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(300.dp) // Adjust this value as needed for your layout
-                ) {
-                    CameraPreviewView()  // Placeholder for the camera preview
-                }
-
                 Spacer(modifier = Modifier.height(16.dp))
 
                 // Display QR scan data or NFC info
@@ -138,20 +129,5 @@ fun NFCScanPage() {
         }
     )
 }
-
-// This would be a placeholder for actual camera preview logic
-@Composable
-fun CameraPreviewView() {
-    // Here you would integrate your CameraPreview logic
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.primary)  // Use 'primary' instead of 'primaryVariant'
-    ) {
-        // Actual camera view goes here, possibly using a library like CameraX or custom CameraPreview composable.
-        Text(text = "QR Camera Preview", color = MaterialTheme.colorScheme.onPrimary)
-    }
-}
-
 
 fun ByteArray.toHexString(): String = joinToString("") { "%02x".format(it) }

@@ -22,6 +22,7 @@ fun ExtraPage(onGoBack: () -> Unit) {
 
     // If no carId is available, go back to the login page
     if (carId.isNullOrEmpty()) {
+        CarIdStorage.removeTripId()
         onGoBack()
         return
     } else {
@@ -58,9 +59,10 @@ fun ExtraPage(onGoBack: () -> Unit) {
                     val carData = doc.get("car") as? Map<String, Any> ?: emptyMap()
                     val stopPointsData = doc.get("stopPoints") as? List<Map<String, Any>> ?: emptyList()
                     Log.d("ExtraPage", "StopPoints data: $stopPointsData")
-
+                    CarIdStorage.saveTripId(doc.id)
                     TripData(
                         id = doc.id,
+
                         route = Route(
                             id = routeData["id"] as? String ?: "",
                             googleMapsRouteId = routeData["googleMapsRouteId"] as? String ?: "",

@@ -26,7 +26,7 @@ private class AuthorizationInterceptor() : Interceptor {
 
 val apolloClient = ApolloClient.Builder()
     .serverUrl("https://cavgo.onrender.com/graphql")
-    .webSocketServerUrl("ws://10.0.2.2:4000/graphql")
+    .webSocketServerUrl("wss://cavgo.onrender.com/graphql")
     .okHttpClient(
         OkHttpClient.Builder()
             .addInterceptor(AuthorizationInterceptor())

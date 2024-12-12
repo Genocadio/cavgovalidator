@@ -37,6 +37,18 @@ object CarIdStorage {
         sharedPreferences.edit().putString(LINKED_CAR_ID_KEY, linkedCarId).apply()
     }
 
+    fun saveTripId(tripId: String) {
+        sharedPreferences.edit().putString("tripId", tripId).apply()
+    }
+
+    fun getTripId(): String? {
+        return sharedPreferences.getString("tripId", null)
+    }
+
+    fun removeTripId() {
+        sharedPreferences.edit().remove("tripId").apply()
+    }
+
     /**
      * Retrieve the linked car ID.
      */

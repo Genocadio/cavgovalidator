@@ -1,0 +1,41 @@
+query GetBookings($tripId: ID) {
+    getBookings(tripId: $tripId) {
+        message
+        success
+        data {
+            id
+            trip {
+                id
+                boardingTime
+                status
+                availableSeats
+                reverseRoute
+                createdAt
+                route {
+                    origin {
+                        name
+                    }
+                }
+            }
+            user {
+                lastName
+                id
+                firstName
+                email
+                phoneNumber
+            }
+            status
+            createdAt
+            destination
+            ticket {
+                qrCodeData
+                nfcId
+                id
+                validFrom
+                validUntil
+            }
+            numberOfTickets
+            price
+        }
+    }
+}
