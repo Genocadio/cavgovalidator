@@ -3,30 +3,43 @@ package com.nexxserve.cavgodrivers
 import android.util.Log
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.network.okHttpClient
-import kotlinx.coroutines.delay
+import com.nexxserve.cavgodrivers.TokenRepository.refreshToken
+import com.nexxserve.cavgodrivers.TokenRepository.removeRefresh
+import com.nexxserve.cavgodrivers.TokenRepository.removeToken
+import com.nexxserve.cavgodrivers.TokenRepository.resetRepo
+import kotlinx.coroutines.runBlocking
 import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
 
-private class AuthorizationInterceptor() : Interceptor {
+private class AuthorizationInterceptor : Interceptor {
+
+    private val TOKEN_EXPIRY_TIME = 50 * 60 * 1000L // 50 minutes in milliseconds
+    private var isTokenRefreshing = false
+
+
+
     override fun intercept(chain: Interceptor.Chain): Response {
-        Log.d("AuthorizationInterceptor", "Intercepting request")
-        val request = chain.request().newBuilder()
-            .apply {
-                TokenRepository.getToken()?.let { token ->
-                    Log.d("AuthorizationInterceptor", "Adding token: $token")
-                    addHeader("Authorization", "Bearer $token")
-                } ?: Log.w("AuthorizationInterceptor", "No token found")
-            }
-            .build()
-        return chain.proceed(request)
+        val token = TokenRepository.getToken()
+        // Run the coroutine for token refresh and validation
+
+
+        val requestBuilder = chain.request().newBuilder()
+
+        token?.let {
+            Log.d("AuthorizationInterceptor", "Adding token: $it")
+            requestBuilder.addHeader("Authorization", "Bearer $it")
+        } ?: Log.w("AuthorizationInterceptor", "No token found")
+
+        return chain.proceed(requestBuilder.build())
     }
 
 }
 
 val apolloClient = ApolloClient.Builder()
     .serverUrl("https://cavgo.onrender.com/graphql")
-    .webSocketServerUrl("wss://cavgo.onrender.com/graphql")
+    .webSocketServerUrl("wss://apollo-fullstack-tutorial.herokuapp.com/graphql")
+
     .okHttpClient(
         OkHttpClient.Builder()
             .addInterceptor(AuthorizationInterceptor())
@@ -34,8 +47,7 @@ val apolloClient = ApolloClient.Builder()
     )
     .webSocketReopenWhen { throwable, attempt ->
         Log.d("Apollo", "WebSocket got disconnected, reopening after a delay", throwable)
-        delay(attempt * 1000)
+        kotlinx.coroutines.delay(attempt * 1000)
         true
     }
-
     .build()

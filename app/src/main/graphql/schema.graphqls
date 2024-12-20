@@ -100,6 +100,10 @@ type Query {
   getPosMachine(id: ID!): PosMachineResponse!
 
   getPosMachines: PosMachineListResponse!
+
+  getCards: CardsResponse!
+
+  getCard(id: ID!): CardResponse!
 }
 
 type ChangePasswordResponse {
@@ -155,7 +159,7 @@ type Mutation {
 
   updateTrip(id: ID!, routeId: ID, carId: ID, boardingTime: String, status: String, availableSeats: Int, stopPoints: [StopPointPriceInput], reverseRoute: Boolean): TripResponse!
 
-  addBooking(tripId: ID!, destination: String!, numberOfTickets: Int!, price: Float!): BookingResponse!
+  addBooking(tripId: ID!, destination: String!, numberOfTickets: Int!, price: Float!, nfcId: String): BookingResponse!
 
   deleteBooking(id: ID!): DeleteBookingResponse!
 
@@ -175,11 +179,19 @@ type Mutation {
 
   deleteTripPreset(id: ID!): TripPresetResponse!
 
-  registerPosMachine(serialNumber: String!, carPlate: String!): PosMachineResponse!
+  registerPosMachine(serialNumber: String!, carPlate: String!, password: String!): PosMachineResponse!
 
   updatePosMachine(serialNumber: String, status: String, plateNumber: String): PosMachineResponse!
 
   deletePosMachine(id: ID!): PosMachineResponse!
+
+  regeneratePosToken(refreshToken: String!): PosMachineResponse!
+
+  createCard(nfcId: String!, email: String, phone: String, firstName: String, lastName: String): CardResponse!
+
+  updateCard(id: ID!, nfcId: String, userId: ID): CardResponse!
+
+  deleteCard(id: ID!): CardResponse!
 }
 
 type Driver {
@@ -429,6 +441,8 @@ type Booking {
 
   price: Float!
 
+  card: Card
+
   createdAt: String!
 
   status: String!
@@ -634,6 +648,10 @@ type PosMachineResponse {
   message: String
 
   data: PosMachine
+
+  token: String
+
+  refreshToken: String
 }
 
 type PosMachineListResponse {
@@ -642,6 +660,38 @@ type PosMachineListResponse {
   message: String
 
   data: [PosMachine!]
+}
+
+type Card {
+  id: ID!
+
+  nfcId: String!
+
+  user: User!
+
+  creator: User!
+
+  createdAt: String!
+
+  cardId: String!
+
+  active: Boolean!
+}
+
+type CardResponse {
+  success: Boolean!
+
+  message: String
+
+  data: Card
+}
+
+type CardsResponse {
+  success: Boolean!
+
+  message: String
+
+  data: [Card!]!
 }
 
 """

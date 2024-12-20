@@ -1,0 +1,8 @@
+mutation RegeneratePosToken($refreshToken: String!) {
+    regeneratePosToken(refreshToken: $refreshToken) {
+        refreshToken
+        message
+        success
+        token
+    }
+}

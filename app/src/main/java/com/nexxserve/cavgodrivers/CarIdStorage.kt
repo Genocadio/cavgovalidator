@@ -68,4 +68,7 @@ object CarIdStorage {
     fun getSerial(): String? {
         return sharedPreferences.getString(SERIAL, null)
     }
+    fun removeSerial() {
+        sharedPreferences.edit().remove(SERIAL).apply()
+    }
 }

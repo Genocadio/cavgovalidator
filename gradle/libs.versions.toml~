@@ -15,7 +15,6 @@ activityCompose = "1.9.3"
 composeBom = "2024.04.01"
 firebaseFirestoreKtx = "25.1.1"
 threetenabp = "1.3.0"
-runtimeLivedata = "1.7.6"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -40,7 +39,6 @@ androidx-security-crypto = { module = "androidx.security:security-crypto", versi
 firebase-firestore-ktx = { group = "com.google.firebase", name = "firebase-firestore-ktx", version.ref = "firebaseFirestoreKtx" }
 navigation = { module = "com.google.android.libraries.navigation:navigation", version.ref = "navigation" }
 threetenabp = { module = "com.jakewharton.threetenabp:threetenabp", version.ref = "threetenabp" }
-androidx-runtime-livedata = { group = "androidx.compose.runtime", name = "runtime-livedata", version.ref = "runtimeLivedata" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

@@ -11,23 +11,24 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import android.util.Log
 import com.apollographql.apollo.api.Optional
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+
 
 @Composable
 fun HelloWorldPage(
     username: String,
     onLogout: () -> Unit,
     onGoToExtra: () -> Unit,
-    registerPosMachine: suspend (serialNumber: String, carPlate: String) -> String, // Return message instead of throwing errors
+    registerPosMachine: suspend (serialNumber: String, carPlate: String, password: String) -> String, // Now includes password
     updateCarPlate: suspend (serialNumber: String, plateNumber: String) -> String // Return message instead of throwing errors
 ) {
     var serialNumber by remember { mutableStateOf<String?>(CarIdStorage.getSerial()) }
     var carPlate by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") } // New state for password
     var isLoading by remember { mutableStateOf(false) }
     var showRegistration by remember { mutableStateOf(serialNumber == null) }
     var isSerialEditable by remember { mutableStateOf(serialNumber == null) }
     var message by remember { mutableStateOf("") }
-
-
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
         Text(
@@ -39,6 +40,7 @@ fun HelloWorldPage(
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
         } else if (showRegistration) {
+            // Serial Number input field
             TextField(
                 value = serialNumber.orEmpty(),
                 onValueChange = {
@@ -50,24 +52,35 @@ fun HelloWorldPage(
                 enabled = isSerialEditable,
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
             )
+
+            // Car Plate input field
             TextField(
                 value = carPlate,
                 onValueChange = { carPlate = it },
                 label = { Text("Car Plate") },
                 modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
             )
+
+            // Password input field
+            TextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Password") },
+                visualTransformation = PasswordVisualTransformation(), // Mask password input
+                modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
+            )
+
             Button(
                 onClick = {
-                    if (!serialNumber.isNullOrEmpty() && carPlate.isNotEmpty()) {
+                    if (!serialNumber.isNullOrEmpty() && carPlate.isNotEmpty() && password.isNotEmpty()) {
                         isLoading = true
                         CoroutineScope(Dispatchers.IO).launch {
-                            message = registerPosMachine(serialNumber!!, carPlate)
+                            message = registerPosMachine(serialNumber!!, carPlate, password) // Pass the password to the function
                             isLoading = false
                             if (message.contains("Successfully")) {
                                 showRegistration = false
                                 isSerialEditable = false
-                            }
-                            else {
+                            } else {
                                 serialNumber = null
                             }
                         }
@@ -80,6 +93,7 @@ fun HelloWorldPage(
                 Text("Register POS Machine")
             }
         } else {
+            // Update Car Plate logic remains the same
             TextField(
                 value = carPlate,
                 onValueChange = { carPlate = it },
@@ -128,10 +142,18 @@ fun HelloWorldPage(
     }
 }
 
+
 // Register POS machine - now returns message instead of throwing errors
-suspend fun registerPosMachine(serialNumber: String, carPlate: String): String {
-    Log.w("RegisterPosMachine", "Registering POS machine with serial number: $serialNumber and car plate: $carPlate")
-    val response = apolloClient.mutation(RegisterPosMachineMutation(serialNumber = serialNumber, carPlate = carPlate)).execute()
+// Updated Register POS machine - now includes password and returns token
+suspend fun registerPosMachine(serialNumber: String, carPlate: String, password: String): String {
+    Log.w("RegisterPosMachine", "Registering POS machine with serial number: $serialNumber, car plate: $carPlate, and password: $password")
+
+    // Update mutation to include the password
+    val response = apolloClient.mutation(RegisterPosMachineMutation(
+        serialNumber = serialNumber,
+        carPlate = carPlate,
+        password = password
+    )).execute()
 
     return when {
         response.exception != null -> {
@@ -143,10 +165,23 @@ suspend fun registerPosMachine(serialNumber: String, carPlate: String): String {
         response.data?.registerPosMachine?.success == true -> {
             val posId = response.data?.registerPosMachine?.data?.id
             CarIdStorage.saveSerial(posId ?: "")
+
+            // Save linked car ID if available
             val linkedCarId = response.data?.registerPosMachine?.data?.linkedCar?.id
             if (linkedCarId != null) {
                 CarIdStorage.saveLinkedCarId(linkedCarId)
             }
+
+            // Save token for future use
+            val token = response.data?.registerPosMachine?.token
+            val reftoken = response.data?.registerPosMachine?.refreshToken
+            if (token != null) {
+                TokenRepository.setToken(token)
+                if(reftoken != null) {
+                    TokenRepository.setRefresh(reftoken)
+                }
+            }
+
             "POS Machine Registered Successfully!"
         }
         response.data?.registerPosMachine?.message != null -> {
@@ -157,6 +192,7 @@ suspend fun registerPosMachine(serialNumber: String, carPlate: String): String {
         }
     }
 }
+
 
 // Update POS machine - now returns message instead of throwing errors
 suspend fun updatePosMachine(serialNumber: String?, plateNumber: String?): String {
