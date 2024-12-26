@@ -1,6 +1,7 @@
 package com.nexxserve.cavgodrivers
 
 
+import android.annotation.SuppressLint
 import android.content.Context
 import com.common.apiutil.nfc.NfcUtil
 
@@ -8,6 +9,7 @@ class NfcUtil private constructor(private val context: Context) {
 
     companion object {
         // Volatile ensures that the instance is correctly initialized even in a multi-threaded environment
+        @SuppressLint("StaticFieldLeak")
         @Volatile
         private var INSTANCE: NfcUtil? = null
 

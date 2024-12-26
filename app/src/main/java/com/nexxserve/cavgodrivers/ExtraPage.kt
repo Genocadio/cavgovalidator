@@ -8,14 +8,28 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
-import com.google.firebase.firestore.FirebaseFirestore
-import com.google.firebase.firestore.ListenerRegistration
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import androidx.compose.runtime.LaunchedEffect
+import androidx.navigation.NavController
 
 @Composable
-fun ExtraPage(onGoBack: () -> Unit) {
+fun ExtraPage(
+    nfcId: String,
+    navController: NavController,
+
+
+
+    onGoBack: () -> Unit) {
+    LaunchedEffect(nfcId) {
+        if (nfcId.isEmpty()) {
+            navController.navigate("nfcScan") {
+                popUpTo("extra") { inclusive = true }
+            }
+        }
+    }
+    Log.d("ExtraPage", "NFC ID: $nfcId")
     val trips = remember { mutableStateOf<List<TripData>>(emptyList()) }
     val noTripsMessage = remember { mutableStateOf("Loading trips...") }
 
@@ -38,8 +52,8 @@ fun ExtraPage(onGoBack: () -> Unit) {
         if (trips.value.isEmpty()) {
             Text(text = noTripsMessage.value)
         } else {
-            val rtrips = processTripsWithStopPoints(trips.value) // Use trips.value here
-            rtrips.forEach { trip ->
+            val rTrips = processTripsWithStopPoints(trips.value) // Use trips.value here
+            rTrips.forEach { trip ->
                 TripItem(trip, onBookNow = { tripData, tickets ->
                     Log.d("ExtraPage", "Booking trip: ${tripData.id} with $tickets tickets")
                 })

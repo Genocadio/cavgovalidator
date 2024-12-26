@@ -45,6 +45,17 @@ object CarIdStorage {
         return sharedPreferences.getString("tripId", null)
     }
 
+    fun saveNfcId(nfcId: String) {
+        sharedPreferences.edit().putString("nfcId", nfcId).apply()
+    }
+
+    fun getNfcId(): String? {
+        return sharedPreferences.getString("nfcId", null)
+    }
+    fun removeNfcId() {
+        sharedPreferences.edit().remove("nfcId").apply()
+    }
+
     fun removeTripId() {
         sharedPreferences.edit().remove("tripId").apply()
     }

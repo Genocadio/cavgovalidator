@@ -107,6 +107,7 @@ dependencies {
 //    implementation("com.mapbox.navigation:ui-maps:3.5.2")
 //    implementation("com.mapbox.navigation:android:3.5.2")
     implementation(libs.threetenabp)
+    implementation(libs.apollo.normalized.cache)
 
 //    implementation("com.mapbox.navigation:navigation:3.5.2")
     // Include .aar files from 'libs' directory
