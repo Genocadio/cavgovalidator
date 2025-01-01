@@ -1,5 +1,6 @@
 package com.nexxserve.cavgodrivers
 
+import NfcViewModel
 import android.graphics.Paint
 import android.util.Log
 import android.widget.Toast
@@ -24,17 +25,17 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.apollographql.apollo.api.Optional
+import com.nexxserve.cavgodrivers.fragment.BookingDetails
 import kotlinx.coroutines.launch
 
 @Composable
 fun ExtraPage(
     nfcId: String,
     navController: NavController,
-
-
-
     onGoBack: () -> Unit,
     bookingViewModel: BookingViewModel,
+    nfcViewModel: NfcViewModel,
+    onBookingSuccess: () -> Unit,
     tripViewModel: TripViewModel
 ) {
 
@@ -43,17 +44,7 @@ fun ExtraPage(
     val trips by tripViewModel.trips.observeAsState(emptyList())
     var message by remember { mutableStateOf("") }
 
-    LaunchedEffect(bookings) {
-        if (bookings.isEmpty()) {
-            Log.d("ExtraPage", "No bookings found")
-            navController.navigate("message") {
-                popUpTo("extra") { inclusive = true }
-            }
-        } else {
-            Log.d("ExtraPage", "Bookings found: ${bookings.size}")
-        }
-    }
-
+    nfcViewModel.clearMessage()
     LaunchedEffect(nfcId) {
         if (nfcId.isEmpty()) {
             navController.navigate("message") {
@@ -76,6 +67,15 @@ fun ExtraPage(
                         popUpTo("extra") { inclusive = true }
                     }
 
+                } else if (message.isNotEmpty() && message == "Unauthorized") {
+                    Log.w("ExtraPage", "Unauthorized access")
+                    TokenRepository.removeToken()
+                    TokenRepository.getToken()
+                    getCard(nfcId)
+
+                    navController.navigate("message") {
+                        popUpTo("extra") { inclusive = true }
+                    }
                 }
                 Log.w("ExtraPage", "Failed to retrieve card data")
             }
@@ -126,7 +126,7 @@ fun ExtraPage(
             val rTrips = processTripsWithStopPoints(trips) // Use trips.value here
             val balance = cardData?.wallet?.balance ?: 0.0
             rTrips.forEach { trip ->
-                TripItem(trip, nfcId, balance, onBookNow = { tripData, tickets ->
+                TripItem(trip, nfcId, balance,  bookingViewModel, onBookingSuccess,   onBookNow = { tripData, tickets ->
                     Log.d("ExtraPage", "Booking trip: ${tripData.id} with $tickets tickets  on Card $nfcId" )
                 })
             }
@@ -200,16 +200,23 @@ fun TripItem(
     trip: TripData,
     nfcId: String,
     availableBalance: Double = 0.0,
+    bookingViewModel: BookingViewModel,
+    onBookingSuccess: () -> Unit,
     onBookNow: (TripData, Int) -> Unit // Updated callback to accept number of tickets
 ) {
     var showDialog by remember { mutableStateOf(false) } // To control dialog visibility
     var ticketCount by remember { mutableStateOf("1") } // To store user input for number of tickets
-    var info by remember { mutableStateOf("") }
+
     val scope = rememberCoroutineScope()
     val destination = trip.route.destination.name
     val maxTickets = 5
     val priceR = trip.route.price
-    var totalPrice: Double = priceR * ticketCount.toInt()!!
+    val currentPrice = (ticketCount.toIntOrNull()?.toDouble() ?: 0.0)
+    var totalPrice: Double = priceR * currentPrice
+    var info by remember { mutableStateOf("Total: $totalPrice Rwf") }
+    var loading by remember { mutableStateOf(false) }
+
+
 
     var isBalancSufficient = totalPrice <= availableBalance
 
@@ -275,22 +282,30 @@ fun TripItem(
 
                         onValueChange = {newValue ->
                             // Ensure the ticket count does not exceed maxTickets or cause invalid input
-                            if (newValue.isNotEmpty() && newValue.toIntOrNull() != null) {
-                                ticketCount = newValue
-                            } else {
-                                ticketCount = "1" // Set back to "1" if invalid input or empty
-                            }
-                            val newTicketCount = newValue.toIntOrNull()
-
-                            if (newTicketCount != null && newTicketCount <= maxTickets) {
-                                if (priceR * newTicketCount <= availableBalance) {
-                                    totalPrice = priceR * newTicketCount
+                            if (newValue.toIntOrNull() != null){
+                                if (newValue.toInt() <= maxTickets) {
                                     ticketCount = newValue
+                                    totalPrice = priceR * ticketCount.toInt()
+                                    isBalancSufficient = totalPrice <= availableBalance
+                                    info = if (!isBalancSufficient) {
+                                        "Insufficient balance ".plus(availableBalance.toString())
+                                    } else {
+                                        "Total: $totalPrice  Rwf"
+                                    }
+                                } else{
+                                    info = "Max tickets is $maxTickets"
+                                    ticketCount = if (newValue.toIntOrNull() != null && newValue.toInt() > 0) {
+                                        newValue
+                                    } else {
+                                        ""
+                                    }
+
                                 }
+                            } else {
+                                Log.d("TripItem", "Invalid input $newValue")
+                                info = "Enter number of tickets"
+                                ticketCount = ""
 
-
-                            } else if (newValue.isEmpty()) {
-                                ticketCount = "1"
                             }
                         },
                         label = { Text("Number of Tickets") },
@@ -301,6 +316,7 @@ fun TripItem(
             confirmButton = {
                 Button(
                     onClick = {
+                        info = "Booking ..."
                         // Log the number of tickets entered
                         val tickets = ticketCount.toIntOrNull() ?: 1
                         if (tickets > maxTickets) {
@@ -319,21 +335,42 @@ fun TripItem(
                             info = "Insufficient balance ".plus(availableBalance.toString())
                             return@Button
                         }
-                        Log.d("TripItem", "Number of tickets: $tickets availableBalance: $availableBalance totalPrice: $totalPrice")
+                        Log.d("TripItem", "Number of tickets: $tickets availableBalance: $availableBalance totalPrice: $totalPrice ")
+                        loading = true
+                        TripSeatManager.reduceAvailableSeats(trip.id, tickets) { success, message ->
+                            if (success) {
+                                Log.d("TripItem", "Successfully reduced available seats")
+                                scope.launch {
+                                    Log.d("TripItem", "Booking trip: ${trip.id} with $tickets tickets on Card $nfcId")
+                                    val booked = addBooking(trip.id, destination, tickets, trip.route.price, nfcId, bookingViewModel)
+                                    if (booked) {
+                                        Log.d("TripItem", "Booking successful")
+                                        onBookingSuccess()
+                                        showDialog = false // Close dialog
+
+                                    } else {
+                                        loading = false
+                                        Log.d("TripItem", "Booking failed")
+                                        info = "Booking failed try again"
+                                    }
+                                }
+
+                            } else {
+                                loading = false
+                                Log.w("TripItem", "Failed to reduce available seats: $message")
+                                info = "Booking failed"
+                            }
+                        }
                         onBookNow(trip, tickets) // Pass number of tickets to the booking function
-//                        scope.launch {
-//                            Log.d("TripItem", "Booking trip: ${trip.id} with $tickets tickets on Card $nfcId")
-//                            val booked = addBooking(trip.id, destination, tickets, trip.route.price, nfcId)
-//                            if (booked) {
-//                                Log.d("TripItem", "Booking successful")
-//                            } else {
-//                                Log.d("TripItem", "Booking failed")
-//                            }
-//                        }
-                        showDialog = false // Close dialog
-                    }
+
+                    },
+                    enabled = !loading
                 ) {
-                    Text("Yes")
+                    if (loading) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp)) // Add loading indicator
+                    } else {
+                        Text("Yes")
+                    }
                 }
             },
             dismissButton = {
@@ -350,7 +387,7 @@ fun TripItem(
     }
 }
 
-suspend fun addBooking(tripId: String, destination: String, numberOfTickets: Int, price: Double, nfcId: String): Boolean {
+suspend fun addBooking(tripId: String, destination: String, numberOfTickets: Int, price: Double, nfcId: String, bookingViewModel: BookingViewModel): Boolean {
     return try{
         val response = apolloClient.mutation(AddBookingMutation(tripId = tripId, destination = destination, numberOfTickets = numberOfTickets, price = price, nfcId = Optional.present(nfcId))).execute()
         when {
@@ -362,7 +399,10 @@ suspend fun addBooking(tripId: String, destination: String, numberOfTickets: Int
                 Log.w("AddBooking", "Failed to add booking: ${response.data?.addBooking?.message}")
                 false
             }
-            response.data?.addBooking != null -> {
+            response.data?.addBooking?.data != null -> {
+                val booking = response.data?.addBooking?.data!!.bookingDetails
+                Log.d("AddBooking", "Booking added successfully ${booking.id}")
+                bookingViewModel.addBooking(booking)
                 Log.d("AddBooking", "Booking added successfully")
                 true
             }

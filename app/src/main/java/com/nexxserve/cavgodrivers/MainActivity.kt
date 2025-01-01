@@ -17,8 +17,8 @@ import android.os.Build
 import android.view.WindowInsets
 import android.view.WindowInsetsController
 import android.view.WindowManager
+import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -49,7 +49,7 @@ class MainActivity : ComponentActivity() {
         var Bookings by mutableStateOf(emptyList<BookingDetails>())
 
         // Initialize necessary components
-        TokenRepository.init(this)
+        TokenRepository.init(this, nfcViewModel)
         CarIdStorage.init(this)
         CarIdStorage.setNfcViewModel(nfcViewModel)
         FirebaseApp.initializeApp(this)
@@ -106,20 +106,16 @@ class MainActivity : ComponentActivity() {
                 val tagIdHex = tag.id.toHexString()
 //                soundManagement.playSound(com.google.android.libraries.navigation.R.raw.test_sound)
 
-                if(Bookings.isNotEmpty()){
-                    bookingValidator.validateBooking(this,tagIdHex, Bookings) { isValid ->
+                bookingValidator.validateBooking(this,tagIdHex, Bookings, nfcViewModel) { isValid ->
 
-                        Log.d("NFC", "Validation status: $isValid $tagIdHex")
-                        if (isValid) {
-                            nfcViewModel.setMessage("valid")
-                        } else {
-                            nfcViewModel.setNfcId(tagIdHex)
-                            nfcViewModel.setMessage("invalid")
-                        }
+                    Log.d("NFC", "Validation status: $isValid $tagIdHex")
+                    if (isValid) {
+                        nfcViewModel.setMessage("valid")
+                    } else {
                         nfcViewModel.setNfcId(tagIdHex)
+                        nfcViewModel.setMessage("invalid")
                     }
-                } else {
-                    nfcViewModel.setMessage("No bookings available yet")
+                    nfcViewModel.setNfcId(tagIdHex)
                 }
             },
             onError = { errorMessage ->
@@ -136,7 +132,7 @@ class MainActivity : ComponentActivity() {
                 if (data != null && data.length > 3) {
                     // Process the scanned QR code data
                     if(Bookings.isNotEmpty()){
-                        bookingValidator.validateBooking(this@MainActivity,data, Bookings) { isValid ->
+                        bookingValidator.validateBooking(this@MainActivity,data, Bookings, nfcViewModel) { isValid ->
 
                             Log.d("QR Code", "Validation status: $isValid $data")
                             if (isValid) {
@@ -147,8 +143,6 @@ class MainActivity : ComponentActivity() {
                                 nfcViewModel.setQrCodeData(data)
                             }
                         }
-                    } else {
-                        nfcViewModel.setMessage("No bookings available yet")
                     }
                 }
             }
@@ -201,7 +195,8 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
 
                 // Manage login state
-                var loggedIn by remember { mutableStateOf(true) }
+                val loggedIn = nfcViewModel.isLoggedIn.value
+                val isRefreshing = nfcViewModel.isRefreshing.value
                 var username by remember { mutableStateOf("") }
                 var password by remember { mutableStateOf("") }
                 // Check if token is available
@@ -209,11 +204,19 @@ class MainActivity : ComponentActivity() {
 
                 if (token != null) {
                     Log.d("MainActivity", "Token found: $token")
-                    loggedIn = true
+                    nfcViewModel.setLoggedIn(true)
+
                     username = "yves" // This could be dynamic based on the token or other data
                 } else {
                     Log.d("MainActivity", "Token not found. User is not logged in.")
-                    loggedIn = false
+                    if (isRefreshing) {
+                        Log.d("MainActivity", "Refreshing token...")
+                        Toast.makeText(this, "Refreshing token...", Toast.LENGTH_SHORT).show()
+                        nfcViewModel.setLoggedIn(true)
+                    } else {
+                        Log.d("MainActivity", "User is not logged in.")
+                        nfcViewModel.setLoggedIn(false)
+                    }
                 }
 
                 // State for scanning allowed
@@ -297,7 +300,7 @@ class MainActivity : ComponentActivity() {
                     Log.d("NFC change", "NFC ID changed")
                     if (nfcd != null) {
                         nfcViewModel.clearQrCodeData()
-                        Log.d("NFC change", "NFC ID change: $nfcd ")
+                        Log.d("NFC change", "NFC ID change: $nfcd message: $message")
                         val currentRoute = navController.currentBackStackEntry?.destination?.route
                         if (message == "invalid" && currentRoute != "extra") {
                             // If not already on the Extra page, navigate there
@@ -307,6 +310,7 @@ class MainActivity : ComponentActivity() {
                                 popUpTo("extra") { inclusive = true }
                                 launchSingleTop = true
                             }
+//                            nfcViewModel.clearNfcId()
                         } else {
                             if (currentRoute != "message" ) {
                                 nfcViewModel.clearNfcId()
@@ -345,12 +349,7 @@ class MainActivity : ComponentActivity() {
                     composable("message") {
                         MessagePage(
                             nfcViewModel = nfcViewModel,
-                            onGoToExtra = { nfcId ->
-                                Log.d("MainActivity", "Navigating to extra with nfcId: $nfcId")
-                                runOnUiThread {
-                                    navController.navigate("extra?nfcId=$nfcId")
-                                }
-                            }
+                            bookingViewModel = bookingViewModel
                         )
                     }
 
@@ -360,7 +359,7 @@ class MainActivity : ComponentActivity() {
                             // Update state with login details
                             username = user
                             password = pass
-                            loggedIn = true // Mark the user as logged in
+                            nfcViewModel.setLoggedIn(true) // Mark the user as logged in
                             // Navigate to NFC Scan page
                             navController.navigate("message") {
                                 popUpTo("login") { inclusive = true }
@@ -374,7 +373,7 @@ class MainActivity : ComponentActivity() {
                         HelloWorldPage(
                             username = username,
                             onLogout = {
-                                loggedIn = false
+                                nfcViewModel.setLoggedIn(false) // Mark the user as logged out
                                 TokenRepository.removeToken() // Remove the token on logout
                                 navController.navigate("login") {
                                     popUpTo("helloWorld") { inclusive = true }
@@ -409,6 +408,15 @@ class MainActivity : ComponentActivity() {
                                 nfcViewModel.clearNfcId()
                             },
                             bookingViewModel = bookingViewModel,
+                            nfcViewModel = nfcViewModel,
+                            onBookingSuccess = {
+                                soundManagement.playSound(com.google.android.libraries.navigation.R.raw.test_sound)
+                                nfcViewModel.setMessage("valid")
+                                navController.navigate("message") {
+                                    popUpTo("extra") { inclusive = true }
+                                    launchSingleTop = true
+                                }
+                            },
                             tripViewModel = tripViewModel
                         )
                     }
@@ -437,6 +445,7 @@ class MainActivity : ComponentActivity() {
         soundManagement.loadSound(com.google.android.libraries.navigation.R.raw.test_sound)
         networkMonitor.startMonitoring()
         qrCodeScannerUtil.openScanner(9600)
+
         TripListenerManager.startListeningForTrips(CarIdStorage.getLinkedCarId() ?: "",
             onUpdate = { newTrips ->
                 if(newTrips.isNotEmpty()) {
@@ -444,6 +453,13 @@ class MainActivity : ComponentActivity() {
                 }
 
             }) // Start listening to trips when the activity is resumed
+
+        val tripId = CarIdStorage.getTripId()
+        if (tripId != null) {
+            lifecycleScope.launch {
+                BookingListenerManager.fetchBookingsForTrip(tripId, bookingViewModel)
+            }
+        }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
             val windowInsetsController = window.insetsController
                 windowInsetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())

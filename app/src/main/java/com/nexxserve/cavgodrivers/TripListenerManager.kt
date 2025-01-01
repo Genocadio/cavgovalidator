@@ -7,6 +7,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.ListenerRegistration
 
 
+
 object TripListenerManager {
     private var listener: ListenerRegistration? = null
     @SuppressLint("StaticFieldLeak")
@@ -49,10 +50,13 @@ object TripListenerManager {
                 }
                 val trips = snapshot.documents.map { doc ->
                     val routeData = doc.get("route") as? Map<String, Any> ?: emptyMap()
-                    Log.d("ExtraPage", "Route data: $routeData")
+                    Log.d("TripListener", "Route data: $routeData")
                     val carData = doc.get("car") as? Map<String, Any> ?: emptyMap()
                     val stopPointsData = doc.get("stopPoints") as? List<Map<String, Any>> ?: emptyList()
-                    Log.d("ExtraPage", "StopPoints data: $stopPointsData")
+                    Log.d("TripListener", "StopPoints data: $stopPointsData  price ${stopPointsData[0]["price"]}")
+                    Log.d("TripListener", "Route data: ${routeData["price"]}  ")
+                    Log.d("TripListener", "Route data: ${routeData["price"]?.let { it as? Number } ?: "Price not available"}")
+
                     CarIdStorage.saveTripId(doc.id)
 //                    val tripId = doc.id
 //                    CoroutineScope(Dispatchers.IO).launch {
@@ -65,7 +69,7 @@ object TripListenerManager {
                         route = Route(
                             id = routeData["id"] as? String ?: "",
                             googleMapsRouteId = routeData["googleMapsRouteId"] as? String ?: "",
-                            price = routeData["price"] as? Double ?: 0.0,
+                            price = (routeData["price"] as? Number)?.toDouble() ?: 0.0,
                             origin = Origin(
                                 type = (routeData["origin"] as? Map<*, *>)?.get("type") as? String ?: "",
                                 address = (routeData["origin"] as? Map<*, *>)?.get("address") as? String ?: "",
@@ -118,7 +122,7 @@ object TripListenerManager {
                             val lat = coordinates["lat"] as? Double ?: 0.0
                             val lng = coordinates["lng"] as? Double ?: 0.0
                             StopPoint(
-                                price = stop["price"] as? Double ?: 0.0,
+                                price = (stop["price"] as? Number)?.toDouble() ?: 0.0,
                                 location = Location(
                                     address = address,
                                     coordinates = Coordinates(lat = lat, lng = lng),

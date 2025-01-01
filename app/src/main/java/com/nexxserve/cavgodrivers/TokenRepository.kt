@@ -1,5 +1,6 @@
 package com.nexxserve.cavgodrivers
 
+import NfcViewModel
 import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
@@ -16,8 +17,12 @@ object TokenRepository {
     private const val KEY_TOKEN_TIMESTAMP = "TOKEN_TIMESTAMP"
 
     private lateinit var preferences: SharedPreferences
+    private lateinit var nfcViewModel: NfcViewModel
 
-    fun init(context: Context) {
+    fun init(context: Context, nfcViewModel: NfcViewModel) {
+
+        this.nfcViewModel = nfcViewModel
+
         val masterKey = MasterKey.Builder(context, MasterKey.DEFAULT_MASTER_KEY_ALIAS)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
@@ -38,15 +43,17 @@ object TokenRepository {
         if (token == null) {
             if (reftoken != null) {
                 Log.d("Auth", "Token is null, refreshing")
+                nfcViewModel.setIsRefreshing(true)
                 CoroutineScope(Dispatchers.IO).launch{
-                    refreshToken()
+                    refreshToken(nfcViewModel)
                 }
             }
         } else {
             val timestamp = getTokenTimestamp()
-            if (System.currentTimeMillis() - timestamp > 3600000) {
+            if (System.currentTimeMillis() - timestamp > 3000000) {
                 CoroutineScope(Dispatchers.IO).launch{
-                    refreshToken()
+                    nfcViewModel.setIsRefreshing(true)
+                    refreshToken(nfcViewModel)
                 }
             }
         }
@@ -93,7 +100,7 @@ object TokenRepository {
     }
 
     // Refreshes the token
-    suspend fun refreshToken(): String {
+    suspend fun refreshToken(nfcViewModel: NfcViewModel): String {
         val refreshToken = getRefresh() ?: return "No refresh token available"
 
         return withContext(Dispatchers.IO) { // Ensures it runs on a background thread
@@ -111,6 +118,7 @@ object TokenRepository {
                 // Check success and retrieve the new tokens
                 val regenerateData = response.data?.regeneratePosToken
                 if (regenerateData?.success != true) {
+                    nfcViewModel.setIsRefreshing(false)
                     removeToken()
                     removeRefresh()
                     return@withContext "Failed to refresh token: Refresh token invalid"
@@ -119,6 +127,7 @@ object TokenRepository {
                 if (regenerateData?.success == true) {
                     regenerateData.token?.let { setToken(it) }
                     regenerateData.refreshToken?.let { setRefresh(it) }
+                    nfcViewModel.clearNfcId()
                     Log.d("Auth", "Token refreshed")
                     "Token refreshed successfully"
                 } else {

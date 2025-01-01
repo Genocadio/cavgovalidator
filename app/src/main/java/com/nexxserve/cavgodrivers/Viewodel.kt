@@ -18,8 +18,35 @@ class NfcViewModel : ViewModel() {
     private val _qrcodeData = mutableStateOf<String?>(null)
     val qrcodeData: State<String?> get() = _qrcodeData
 
+    private val _loggedIn = mutableStateOf(false)
+    val isLoggedIn: State<Boolean> get() = _loggedIn
+
+    private val _isRefreshing = mutableStateOf(false)
+    val isRefreshing: State<Boolean> get() = _isRefreshing
+
+    private val _bookingid = mutableStateOf<String?>(null)
+    val bookingid: State<String?> get() = _bookingid
+
 
     private val messageDelayMillis = 2000L
+
+    fun setBookingId(id: String) {
+        if (id.isNotBlank()) _bookingid.value = id
+    }
+    fun clearBookingId() {
+        _bookingid.value = null
+    }
+
+    fun setIsRefreshing(isRefreshing: Boolean) {
+        _isRefreshing.value = isRefreshing
+    }
+
+    fun setLoggedIn(isLoggedIn: Boolean) {
+        _loggedIn.value = isLoggedIn
+    }
+    fun isLoggedIn(): Boolean {
+        return _loggedIn.value
+    }
 
     fun setNfcId(id: String) {
         if (id.isNotBlank()) _nfcId.value = id
@@ -51,9 +78,14 @@ class NfcViewModel : ViewModel() {
 
     fun resetMessage() {
         viewModelScope.launch {
+//            _nfcId.value = null
             delay(messageDelayMillis)
             _message.value = "Tap Your Card or Scan QR Code"
+
         }
+    }
+    fun clearMessage() {
+        _message.value = ""
     }
 
 }
