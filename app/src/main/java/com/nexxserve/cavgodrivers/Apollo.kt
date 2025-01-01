@@ -13,7 +13,7 @@ import com.apollographql.apollo.network.ws.WebSocketNetworkTransport
 
 class AuthorizationInterceptor() : HttpInterceptor {
 
-    private  var token: String = TokenRepository.getToken() ?: ""
+    private  var token= TokenRepository.getToken()
 
     override suspend fun intercept(request: HttpRequest, chain: HttpInterceptorChain): HttpResponse {
         // You can implement token refresh logic if needed

@@ -114,7 +114,7 @@ suspend fun login(email: String, password: String): Boolean {
             apolloClient.mutation(LoginUserMutation(email = email, password = password)).execute()
         when {
             response.exception != null -> {
-                Log.w("Login", "Failed to login  ${response?.exception!!.message}", response.exception)
+                Log.w("Login", "Failed to login  ${response.exception!!.message}", response.exception)
                 false
             }
             response.hasErrors() -> {
@@ -126,7 +126,7 @@ suspend fun login(email: String, password: String): Boolean {
                 false
             }
             else -> {
-                TokenRepository.setToken(response.data!!.loginUser!!.data!!.token!!)
+                TokenRepository.setToken(response.data!!.loginUser.data!!.token)
                 Log.i("Login", "Login successful" + TokenRepository.getToken())
                 true
             }

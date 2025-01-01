@@ -81,3 +81,14 @@ data class User(
     val id: String = "",
     val name: String = ""
 )
+data class Wallet(
+    val balance: Double = 0.0
+)
+data class CardUser(
+    val firstName: String = "",
+    val lastName: String = ""
+)
+data class CardData(
+    val wallet: Wallet? = null,
+    val user: CardUser? = null
+)

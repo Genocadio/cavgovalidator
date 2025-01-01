@@ -5,8 +5,9 @@ import android.content.SharedPreferences
 import android.util.Log
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 object TokenRepository {
@@ -32,11 +33,28 @@ object TokenRepository {
 
     // Automatically checks and refreshes token if expired
     fun getToken(): String? {
+        val reftoken = getRefresh()
+        val token = preferences.getString(KEY_TOKEN, null)
+        if (token == null) {
+            if (reftoken != null) {
+                Log.d("Auth", "Token is null, refreshing")
+                CoroutineScope(Dispatchers.IO).launch{
+                    refreshToken()
+                }
+            }
+        } else {
+            val timestamp = getTokenTimestamp()
+            if (System.currentTimeMillis() - timestamp > 3600000) {
+                CoroutineScope(Dispatchers.IO).launch{
+                    refreshToken()
+                }
+            }
+        }
         return preferences.getString(KEY_TOKEN, null) // Return existing or null token
     }
 
 
-    fun getTokenTimestamp(): Long = preferences.getLong(KEY_TOKEN_TIMESTAMP, 0L)
+    private fun getTokenTimestamp(): Long = preferences.getLong(KEY_TOKEN_TIMESTAMP, 0L)
 
     fun setToken(token: String) {
         preferences.edit().apply {
@@ -92,6 +110,12 @@ object TokenRepository {
 
                 // Check success and retrieve the new tokens
                 val regenerateData = response.data?.regeneratePosToken
+                if (regenerateData?.success != true) {
+                    removeToken()
+                    removeRefresh()
+                    return@withContext "Failed to refresh token: Refresh token invalid"
+                }
+
                 if (regenerateData?.success == true) {
                     regenerateData.token?.let { setToken(it) }
                     regenerateData.refreshToken?.let { setRefresh(it) }

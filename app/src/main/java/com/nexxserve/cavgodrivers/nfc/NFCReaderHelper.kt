@@ -24,7 +24,7 @@ class NFCReaderHelper(
                 NfcAdapter.ReaderCallback { tag ->
                     tag?.let { onTagRead(it) } ?: onError("Tag not found.")
                 },
-                NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B,
+                NfcAdapter.FLAG_READER_NFC_A or NfcAdapter.FLAG_READER_NFC_B or NfcAdapter.FLAG_READER_NO_PLATFORM_SOUNDS,
                 Bundle()
             )
         } else {

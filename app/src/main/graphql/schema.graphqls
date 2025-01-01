@@ -12,6 +12,10 @@ type User {
   userType: String!
 
   company: Company
+
+  cards: [Card]
+
+  defaultCard: Card
 }
 
 type AuthPayload {
@@ -103,7 +107,11 @@ type Query {
 
   getCards: CardsResponse!
 
-  getCard(id: ID!): CardResponse!
+  getCard(nfcId: ID!): CardResponse!
+
+  getWallet(id: ID!): WalletResponse!
+
+  getWallets: WalletListResponse!
 }
 
 type ChangePasswordResponse {
@@ -122,6 +130,8 @@ type Mutation {
   deleteUser(id: ID!): UserResponse!
 
   changePassword(currentPassword: String, newPassword: String!, userId: ID): ChangePasswordResponse!
+
+  updateDefaultCard(nfcId: String): UserResponse!
 
   registerDriver(name: String!, email: String!, phoneNumber: String!, type: String!, license: String!, companyId: ID, password: String!): DriverAuthPayload!
 
@@ -192,6 +202,12 @@ type Mutation {
   updateCard(id: ID!, nfcId: String, userId: ID): CardResponse!
 
   deleteCard(id: ID!): CardResponse!
+
+  createWallet(userId: ID, nfcId: ID): WalletResponse!
+
+  updateWallet(nfcId: ID!, transaction: WalletTransactionInput!): WalletResponse!
+
+  deleteWallet(id: ID!): WalletResponse!
 }
 
 type Driver {
@@ -448,6 +464,8 @@ type Booking {
   status: String!
 
   ticket: Ticket
+
+  pos: PosMachine
 }
 
 type Ticket {
@@ -667,7 +685,7 @@ type Card {
 
   nfcId: String!
 
-  user: User!
+  user: User
 
   creator: User!
 
@@ -676,6 +694,8 @@ type Card {
   cardId: String!
 
   active: Boolean!
+
+  wallet: Wallet
 }
 
 type CardResponse {
@@ -692,6 +712,56 @@ type CardsResponse {
   message: String
 
   data: [Card!]!
+}
+
+type WalletTransaction {
+  type: String!
+
+  amount: Float!
+
+  description: String
+
+  date: DateTime!
+}
+
+type Wallet {
+  id: ID!
+
+  user: User!
+
+  card: Card!
+
+  balance: Float!
+
+  transactions: [WalletTransaction!]!
+
+  createdAt: DateTime!
+
+  updatedAt: DateTime!
+}
+
+type WalletResponse {
+  success: Boolean!
+
+  message: String
+
+  data: Wallet
+}
+
+type WalletListResponse {
+  success: Boolean!
+
+  message: String
+
+  data: [Wallet!]
+}
+
+input WalletTransactionInput {
+  type: String!
+
+  amount: Float!
+
+  description: String
 }
 
 """

@@ -1,12 +1,14 @@
 package com.nexxserve.cavgodrivers
 
 import NfcViewModel
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Clear
+import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.MaterialTheme
@@ -22,10 +24,27 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun MessagePage(
-    nfcViewModel: NfcViewModel
+    nfcViewModel: NfcViewModel,
+    onGoToExtra: (String) -> Unit
 ) {
     // Observe the message state from the ViewModel
     val message = nfcViewModel.message.value
+    val nfcId = nfcViewModel.nfcId.value
+    val qrCodeData = nfcViewModel.qrcodeData.value
+
+//    if (message == "invalid") {
+//        androidx.compose.runtime.LaunchedEffect(key1 = message) {
+//            if (nfcId != null) {
+//                Log.d("MessagePage", "Navigating to ExtraPage with NFC ID: $nfcId")
+//                onGoToExtra(nfcId)
+//            }
+//        }
+//    }
+
+    if (message == "valid" || message == "invalid") {
+        nfcViewModel.resetMessage()
+    }
+
 
     // Define a default, valid, and invalid state
     when {
@@ -49,6 +68,7 @@ fun MessagePage(
                 backgroundColor = Color.Red.copy(alpha = 0.8f),
                 icon = Icons.Filled.Clear
             )
+
         }
         else -> {
             // For other messages, display the default behavior
@@ -91,6 +111,7 @@ fun MessageCard(
                 style = TextStyle(fontSize = 20.sp, color = Color.White),
                 modifier = Modifier.padding(16.dp)
             )
+
         }
     }
 }

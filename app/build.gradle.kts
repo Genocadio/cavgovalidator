@@ -93,6 +93,7 @@ dependencies {
 //    implementation("com.apollographql.apollo3:apollo-coroutines-support:3.0.0")
 //    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.6.0")
     implementation(libs.androidx.core.ktx)
+    implementation("androidx.core:core-ktx:1.15.0")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
     implementation(platform(libs.androidx.compose.bom))

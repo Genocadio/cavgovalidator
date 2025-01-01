@@ -9,25 +9,51 @@ class NfcViewModel : ViewModel() {
     private val _nfcId = mutableStateOf<String?>(null)
     val nfcId: State<String?> get() = _nfcId
 
-    private val _message = mutableStateOf<String?>(null)
+    private val _message = mutableStateOf("Tap Your Card or Scan QR Code")
     val message: State<String?> get() = _message
 
+    private val _tripId = mutableStateOf<String?>(null)
+    val tripId: State<String?> get() = _tripId
+
+    private val _qrcodeData = mutableStateOf<String?>(null)
+    val qrcodeData: State<String?> get() = _qrcodeData
+
+
+    private val messageDelayMillis = 2000L
+
     fun setNfcId(id: String) {
-        _nfcId.value = id
+        if (id.isNotBlank()) _nfcId.value = id
     }
 
     fun clearNfcId() {
-        _nfcId.value = ""
+        _nfcId.value = null
     }
 
     fun setMessage(message: String) {
         _message.value = message
     }
-    fun clearMessage() {
-        // Launch a coroutine to wait for 3 seconds before clearing the message
+
+    fun setQrCodeData(data: String) {
+        _qrcodeData.value = data
+    }
+
+    fun clearQrCodeData() {
+        _qrcodeData.value = null
+    }
+
+    fun setTripId(id: String) {
+        if (id.isNotBlank()) _tripId.value = id
+    }
+
+    fun clearTripId() {
+        _tripId.value = null
+    }
+
+    fun resetMessage() {
         viewModelScope.launch {
-            delay(3000)  // Wait for 3 seconds
-            _message.value = "Tap Your Card or Scan QR Code"  // Clear the message
+            delay(messageDelayMillis)
+            _message.value = "Tap Your Card or Scan QR Code"
         }
     }
+
 }

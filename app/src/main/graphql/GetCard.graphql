@@ -1,0 +1,14 @@
+query GetCard($nfcId: ID!) {
+    getCard(nfcId: $nfcId) {
+        message
+        data {
+            wallet {
+                balance
+            }
+            user {
+                firstName
+                lastName
+            }
+        }
+    }
+}

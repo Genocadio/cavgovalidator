@@ -1,5 +1,6 @@
 package com.nexxserve.cavgodrivers
 
+import NfcViewModel
 import android.content.Context
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
@@ -11,6 +12,7 @@ object CarIdStorage {
     private const val SERIAL= "serial"
 
     private lateinit var sharedPreferences: EncryptedSharedPreferences
+    private var nfcViewModel: NfcViewModel? = null
 
     /**
      * Initialize SharedPreferences (must be called once in the application lifecycle).
@@ -33,11 +35,18 @@ object CarIdStorage {
     /**
      * Save the linked car ID.
      */
+
+    fun setNfcViewModel(viewModel: NfcViewModel) {
+        nfcViewModel = viewModel
+    }
+
+
     fun saveLinkedCarId(linkedCarId: String) {
         sharedPreferences.edit().putString(LINKED_CAR_ID_KEY, linkedCarId).apply()
     }
 
     fun saveTripId(tripId: String) {
+        nfcViewModel?.setTripId(tripId)
         sharedPreferences.edit().putString("tripId", tripId).apply()
     }
 
@@ -57,6 +66,7 @@ object CarIdStorage {
     }
 
     fun removeTripId() {
+        nfcViewModel?.clearTripId()
         sharedPreferences.edit().remove("tripId").apply()
     }
 

@@ -1,0 +1,9 @@
+mutation AddBooking($tripId: ID!, $destination: String!, $numberOfTickets: Int!, $price: Float!, $nfcId: String) {
+    addBooking(tripId: $tripId, destination: $destination, numberOfTickets: $numberOfTickets, price: $price, nfcId: $nfcId) {
+        success
+        message
+        data {
+            ...BookingDetails
+        }
+    }
+}
