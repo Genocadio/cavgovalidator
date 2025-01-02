@@ -104,6 +104,8 @@ class MainActivity : ComponentActivity() {
                 // Handle the NFC tag read here
                 Log.d("NFC", "Tag read: ${tag.id}")
                 val tagIdHex = tag.id.toHexString()
+                nfcViewModel.clearNfcId()
+                nfcViewModel.clearMessage()
 //                soundManagement.playSound(com.google.android.libraries.navigation.R.raw.test_sound)
 
                 bookingValidator.validateBooking(this,tagIdHex, Bookings, nfcViewModel) { isValid ->
@@ -179,6 +181,14 @@ class MainActivity : ComponentActivity() {
 
 
         setContent {
+            val token = TokenRepository.getToken()
+            if (token != null) {
+                Log.d("MainActivity", "Token found: $token")
+                nfcViewModel.setLoggedIn(true)
+            } else {
+                Log.d("MainActivity", "Token not found. User is not logged in.")
+                nfcViewModel.setLoggedIn(false)
+            }
 
             window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
@@ -405,7 +415,7 @@ class MainActivity : ComponentActivity() {
                                     popUpTo("extra") { inclusive = true }
                                     launchSingleTop = true
                                 }
-                                nfcViewModel.clearNfcId()
+
                             },
                             bookingViewModel = bookingViewModel,
                             nfcViewModel = nfcViewModel,

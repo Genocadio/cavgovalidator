@@ -1,9 +1,7 @@
 package com.nexxserve.cavgodrivers
 
 import NfcViewModel
-import android.graphics.Paint
 import android.util.Log
-import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
@@ -19,13 +17,11 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.livedata.observeAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.DialogProperties
 import androidx.navigation.NavController
 import com.apollographql.apollo.api.Optional
-import com.nexxserve.cavgodrivers.fragment.BookingDetails
 import kotlinx.coroutines.launch
 
 @Composable
@@ -44,7 +40,7 @@ fun ExtraPage(
     val trips by tripViewModel.trips.observeAsState(emptyList())
     var message by remember { mutableStateOf("") }
 
-    nfcViewModel.clearMessage()
+
     LaunchedEffect(nfcId) {
         if (nfcId.isEmpty()) {
             navController.navigate("message") {
@@ -66,7 +62,6 @@ fun ExtraPage(
                     navController.navigate("message") {
                         popUpTo("extra") { inclusive = true }
                     }
-
                 } else if (message.isNotEmpty() && message == "Unauthorized") {
                     Log.w("ExtraPage", "Unauthorized access")
                     TokenRepository.removeToken()
@@ -83,9 +78,7 @@ fun ExtraPage(
     }
 
     Log.d("ExtraPage", "NFC ID: $nfcId")
-
 //    val trips = remember { mutableStateOf<List<TripData>>(emptyList()) }
-
     val noTripsMessage = remember { mutableStateOf("Loading trips...") }
 
     // Observe updates from the manager using the carId stored in CarIdStorage
@@ -206,7 +199,6 @@ fun TripItem(
 ) {
     var showDialog by remember { mutableStateOf(false) } // To control dialog visibility
     var ticketCount by remember { mutableStateOf("1") } // To store user input for number of tickets
-
     val scope = rememberCoroutineScope()
     val destination = trip.route.destination.name
     val maxTickets = 5

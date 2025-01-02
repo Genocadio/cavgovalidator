@@ -28,13 +28,10 @@ class NfcViewModel : ViewModel() {
     val bookingid: State<String?> get() = _bookingid
 
 
-    private val messageDelayMillis = 2000L
+    private val messageDelayMillis = 10000L
 
     fun setBookingId(id: String) {
         if (id.isNotBlank()) _bookingid.value = id
-    }
-    fun clearBookingId() {
-        _bookingid.value = null
     }
 
     fun setIsRefreshing(isRefreshing: Boolean) {
