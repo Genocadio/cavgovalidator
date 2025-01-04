@@ -41,20 +41,32 @@ object TokenRepository {
         val reftoken = getRefresh()
         val token = preferences.getString(KEY_TOKEN, null)
         if (token == null) {
-            if (reftoken != null) {
+            val  refreshing = nfcViewModel.isRefreshing.value
+            if (reftoken != null && !refreshing) {
                 Log.d("Auth", "Token is null, refreshing")
                 nfcViewModel.setIsRefreshing(true)
                 CoroutineScope(Dispatchers.IO).launch{
                     refreshToken(nfcViewModel)
                 }
+            } else {
+                Log.d("Auth", "Token is null, but refresh token is null, refreshing = $refreshing" )
             }
         } else {
             val timestamp = getTokenTimestamp()
             if (System.currentTimeMillis() - timestamp > 3000000) {
-                CoroutineScope(Dispatchers.IO).launch{
-                    nfcViewModel.setIsRefreshing(true)
-                    refreshToken(nfcViewModel)
+                val  refreshing = nfcViewModel.isRefreshing.value
+                if (reftoken != null && !refreshing) {
+                    Log.d("Auth", "Token expired, refreshing")
+                    CoroutineScope(Dispatchers.IO).launch{
+                        nfcViewModel.setIsRefreshing(true)
+                        refreshToken(nfcViewModel)
+                    }
+                } else {
+                    Log.d("Auth", "Token expired, but refresh token is null, refreshing = $refreshing")
                 }
+
+            } else {
+                Log.d("Auth", "Token is not null, not expired user loged in $reftoken")
             }
         }
         return preferences.getString(KEY_TOKEN, null) // Return existing or null token
@@ -72,13 +84,14 @@ object TokenRepository {
     }
 
     fun setRefresh(token: String) {
+        Log.d("Auth", "Setting refresh token")
         preferences.edit().apply {
             putString(REF_TOKEN, token)
             apply()
         }
     }
 
-    fun removeRefresh() {
+    private fun removeRefresh() {
         preferences.edit().apply {
             remove(REF_TOKEN)
             apply()
@@ -89,9 +102,10 @@ object TokenRepository {
         preferences.edit().clear().apply()
     }
 
-    private fun getRefresh(): String? = preferences.getString(REF_TOKEN, null)
+    fun getRefresh(): String? = preferences.getString(REF_TOKEN, null)
 
     fun removeToken() {
+        nfcViewModel.setLoggedIn(false)
         preferences.edit().apply {
             remove(KEY_TOKEN)
             remove(KEY_TOKEN_TIMESTAMP)

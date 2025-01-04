@@ -112,6 +112,12 @@ type Query {
   getWallet(id: ID!): WalletResponse!
 
   getWallets: WalletListResponse!
+
+  getAgent(id: ID): getAgentResponse!
+
+  getAgents: getAgentsResponse!
+
+  getAgentWallet(id: ID!): AuthPayload!
 }
 
 type ChangePasswordResponse {
@@ -169,6 +175,8 @@ type Mutation {
 
   updateTrip(id: ID!, routeId: ID, carId: ID, boardingTime: String, status: String, availableSeats: Int, stopPoints: [StopPointPriceInput], reverseRoute: Boolean): TripResponse!
 
+  addAgentBooking(tripId: ID!, destination: String!, numberOfTickets: Int!, price: Float!, clientName: String!): BookingResponse!
+
   addBooking(tripId: ID!, destination: String!, numberOfTickets: Int!, price: Float!, nfcId: String): BookingResponse!
 
   deleteBooking(id: ID!): DeleteBookingResponse!
@@ -208,6 +216,18 @@ type Mutation {
   updateWallet(nfcId: ID!, transaction: WalletTransactionInput!): WalletResponse!
 
   deleteWallet(id: ID!): WalletResponse!
+
+  registerAgent(firstName: String!, lastName: String!, email: String!, phoneNumber: String!, password: String!): AgentPayload!
+
+  loginAgent(email: String!, password: String!): AgentPayload!
+
+  updateAgent(id: ID!, firstName: String, lastName: String, email: String, phoneNumber: String): AgentPayload!
+
+  deleteAgent(id: ID!): AuthPayload!
+
+  regenerateAgentToken(refreshToken: String!): AgentPayload!
+
+  addTransaction(id: ID!, type: String!, amount: Float!, description: String): AgentPayload!
 }
 
 type Driver {
@@ -447,7 +467,7 @@ input StopPointPriceInput {
 type Booking {
   id: ID!
 
-  user: User!
+  user: User
 
   trip: Trip!
 
@@ -466,6 +486,10 @@ type Booking {
   ticket: Ticket
 
   pos: PosMachine
+
+  agent: Agent
+
+  clientName: String
 }
 
 type Ticket {
@@ -479,7 +503,7 @@ type Ticket {
 
   qrCodeData: String!
 
-  nfcId: String!
+  nfcId: String
 
   validFrom: String!
 
@@ -492,6 +516,8 @@ type BookingResponse {
   message: String
 
   data: Booking
+
+  balance: Float
 }
 
 type BookingsResponse {
@@ -746,6 +772,8 @@ type WalletResponse {
   message: String
 
   data: Wallet
+
+  agentbalance: Float
 }
 
 type WalletListResponse {
@@ -762,6 +790,74 @@ input WalletTransactionInput {
   amount: Float!
 
   description: String
+}
+
+type AgentWallet {
+  balance: Float!
+
+  transactions: [WalletTransaction!]!
+}
+
+type Agent {
+  id: ID!
+
+  firstName: String!
+
+  lastName: String!
+
+  email: String!
+
+  phoneNumber: String!
+
+  status: String!
+
+  wallet: AgentWallet!
+
+  createdAt: String!
+
+  updatedAt: String!
+}
+
+type AgentPayload {
+  success: Boolean!
+
+  token: String
+
+  agent: Agent
+
+  message: String
+
+  refreshToken: String
+}
+
+type agentWalletResponse {
+  success: Boolean!
+
+  message: String
+
+  data: AgentWallet
+}
+
+type getAgentResponse {
+  success: Boolean!
+
+  message: String
+
+  data: Agent
+}
+
+type getAgentsResponse {
+  success: Boolean!
+
+  message: String
+
+  data: [Agent]
+}
+
+type SuccessResponse {
+  success: Boolean!
+
+  message: String
 }
 
 """

@@ -22,6 +22,9 @@ import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.common.CommonConstants.LedColor
+import com.common.CommonConstants.LedType
+import com.common.apiutil.pos.CommonUtil
 import com.nexxserve.cavgodrivers.fragment.BookingDetails
 import com.nexxserve.cavgodrivers.nfc.NFCReaderHelper
 import com.nexxserve.cavgodrivers.qr.QRCodeScannerUtil
@@ -39,6 +42,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var soundManagement: SoundManagement
     private lateinit var qrCodeScannerUtil: QRCodeScannerUtil
     private  val tripViewModel: TripViewModel by viewModels()
+    private var mCommonUtil: CommonUtil? = null
 
 
     @OptIn(ExperimentalStdlibApi::class)
@@ -59,6 +63,7 @@ class MainActivity : ComponentActivity() {
         networkMonitor = NetworkMonitor(this, bookingViewModel, notificationHelper)
         TripListenerManager.initialize(this)
         qrCodeScannerUtil = QRCodeScannerUtil(this)
+        mCommonUtil = CommonUtil(this)
 
 
         notificationHelper.createNotificationChannel()
@@ -66,6 +71,28 @@ class MainActivity : ComponentActivity() {
 
 
         soundManagement.loadSound(com.google.android.libraries.navigation.R.raw.test_sound)
+
+
+        fun turnOnLights(led: String) {
+            val color = when (led) {
+                "green" -> LedColor.GREEN_LED
+                else -> LedColor.RED_LED
+            }
+            val bright = if (led == "off") 0 else 255
+
+            val ledTypes = listOf(
+                LedType.COLOR_LED_1,
+                LedType.COLOR_LED_2,
+                LedType.COLOR_LED_3,
+                LedType.COLOR_LED_4
+            )
+
+            val isOn = ledTypes.map { ledType ->
+                mCommonUtil!!.setColorLed(ledType, color, bright)
+            }.firstOrNull() // Assuming you're interested only in the first LED status
+
+            Log.d("MainLed", "isOn$isOn")
+        }
 
 
 
@@ -182,8 +209,40 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             val token = TokenRepository.getToken()
+            val refreshToken = TokenRepository.getRefresh()
+            var startPage by remember { mutableStateOf("login") }
+
+            if(token!= null){
+                if(refreshToken != null){
+                    Log.d("MainActivity", "Refresh Token found: $refreshToken")
+                    startPage = "message"
+
+                } else {
+                    Log.d("MainActivity", "Refresh Token going to helloworld $refreshToken.")
+                    CarIdStorage.removeSerial()
+                    CarIdStorage.removeLinkedCarId()
+                    startPage = "helloWorld"
+                }
+            } else {
+                if(refreshToken != null){
+                    Log.d("MainActivity", "Refresh Token found: $refreshToken")
+                    startPage = "message"
+                } else {
+                    Log.d("MainActivity", "No token going to login.")
+                    TokenRepository.resetRepo()
+                    CarIdStorage.removeSerial()
+                    CarIdStorage.removeLinkedCarId()
+                    startPage = "login"
+                }
+            }
+
+
+
             if (token != null) {
                 Log.d("MainActivity", "Token found: $token")
+                if(refreshToken != null) {
+                    Log.d("MainActivity", "Refresh Token found: $refreshToken")
+                }
                 nfcViewModel.setLoggedIn(true)
             } else {
                 Log.d("MainActivity", "Token not found. User is not logged in.")
@@ -239,6 +298,70 @@ class MainActivity : ComponentActivity() {
                 val loading = bookingViewModel.loading.value
                 val qrCodeData = nfcViewModel.qrcodeData.value
 
+                LaunchedEffect(loggedIn) {
+                    if(!loggedIn) {
+                        val tok = TokenRepository.getToken()
+                        if(tok == null) {
+                            navController.navigate("login") {
+                                popUpTo("helloWorld") { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    } else {
+                        if(carId != null) {
+                            TripListenerManager.startListeningForTrips(carId, onUpdate = { trips ->
+                                // Update the isScanningAllowed state based on trips data
+                                isScanningAllowed = trips.isNotEmpty()
+                                Log.d("MainActivity", "Trips updated: $trips")
+                                tripViewModel.setTrips(trips)
+
+                            })
+                        }
+
+                    }
+                }
+                val refreshData = nfcViewModel.refreshdata.value
+                LaunchedEffect(refreshData) {
+                    if (refreshData) {
+                        Log.d("MainActivity", "Refreshing data...")
+                        nfcViewModel.setRefreshData(false)
+                        val Id = CarIdStorage.getLinkedCarId()
+                        if (Id != null) {
+                            TripListenerManager.startListeningForTrips(Id) { trips ->
+                                // Update the isScanningAllowed state based on trips data
+                                Log.d("MainActivity", "Trips updated: ${trips.size}")
+                                tripViewModel.setTrips(trips)
+
+                            }
+                        }
+                    }
+                }
+
+                LaunchedEffect(carId) {
+                    if (carId != null) {
+                        TripListenerManager.startListeningForTrips(carId) { trips ->
+                            // Update the isScanningAllowed state based on trips data
+                            isScanningAllowed = trips.isNotEmpty()
+                            Log.d("MainActivity", "Trips updated: $trips")
+                            tripViewModel.setTrips(trips)
+
+                        }
+                    } else {
+                        val tok = TokenRepository.getToken()
+                        if(tok != null) {
+                            val currentRoute = navController.currentBackStackEntry?.destination?.route
+                           if (currentRoute != "login" && currentRoute != "helloWorld") {
+                               navController.navigate("helloWorld") {
+                                   popUpTo("message") { inclusive = true }
+                                   launchSingleTop = true
+                               }
+                            }
+                            Log.e("MainActivity", "Car ID is null. TripListenerManager will not start. $currentRoute")
+                        }
+
+                    }
+                }
+
                 LaunchedEffect(loading) {
                     if (loading) {
                         Log.d("MainActivity", "Loading bookings...")
@@ -259,52 +382,7 @@ class MainActivity : ComponentActivity() {
                         bookingViewModel.clearBookings()
                     }
                 }
-//                LaunchedEffect(Bookings) {
-//                    qrCodeScannerUtil.setQRCodeScanListener(object :
-//                        QRCodeScannerUtil.QRCodeScanListener {
-//                        override fun onQRCodeScanned(data: String?) {
-//                            // Handle the scanned data
-//                            data?.let {
-//                                Log.d("MainActivity", "Scanned QR Code: $data")
-//                                if (data != null && data.length > 3) {
-//                                    // Process the scanned QR code data
-//                                    bookingValidator.validateBooking(this@MainActivity, it, Bookings) { isValid ->
-//                                        Log.d("NFC", "Validation status: $isValid $it")
-//                                        if (isValid) {
-//                                            nfcViewModel.setMessage("valid")
-//                                        } else {
-//                                            nfcViewModel.setNfcId(it)
-//                                            nfcViewModel.setMessage("invalid")
-//                                        }
-//                                    }
-//                                    Log.d("MainActivity", "Scanned QR Code: $it")
-//                                }
-//
-//
-//                            }
-//                        }
-//                    })
-//                    Log.d("MainActivity", "NFC ID Changed: $nfcd")
-//                }
 
-
-                LaunchedEffect(carId) {
-                    if (carId != null) {
-                        TripListenerManager.startListeningForTrips(carId) { trips ->
-                            // Update the isScanningAllowed state based on trips data
-                            isScanningAllowed = trips.isNotEmpty()
-                            Log.d("MainActivity", "Trips updated: $trips")
-                            tripViewModel.setTrips(trips)
-
-                        }
-                    } else {
-                        navController.navigate("helloWorld") {
-                            popUpTo("message") { inclusive = true }
-                            launchSingleTop = true
-                        }
-                        Log.e("MainActivity", "Car ID is null. TripListenerManager will not start.")
-                    }
-                }
                 // Log NFC ID changes whenever it changes
                 LaunchedEffect(nfcd ) {
                     Log.d("NFC change", "NFC ID changed")
@@ -335,6 +413,16 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+                LaunchedEffect(message) {
+                    if (message == "valid") {
+                        turnOnLights("green")
+                    } else if (message == "invalid") {
+                        turnOnLights("red")
+                    } else {
+                        turnOnLights("off")
+                    }
+                }
+
                 LaunchedEffect(qrCodeData) {
                     if (qrCodeData != null) {
                         Log.d("NFC change", "QR Code Data change: $qrCodeData")
@@ -352,14 +440,16 @@ class MainActivity : ComponentActivity() {
                 }
                 // Create NavHost to navigate between pages
                 NavHost(
+
                     navController,
-                    startDestination = if (loggedIn) "message" else "login" // Start at NFC Scan if logged in, else login page
+                    startDestination = startPage // Start at NFC Scan if logged in, else login page
                 ) {
 
                     composable("message") {
                         MessagePage(
                             nfcViewModel = nfcViewModel,
-                            bookingViewModel = bookingViewModel
+                            bookingViewModel = bookingViewModel,
+                            navController
                         )
                     }
 
@@ -371,7 +461,7 @@ class MainActivity : ComponentActivity() {
                             password = pass
                             nfcViewModel.setLoggedIn(true) // Mark the user as logged in
                             // Navigate to NFC Scan page
-                            navController.navigate("message") {
+                            navController.navigate("helloworld") {
                                 popUpTo("login") { inclusive = true }
                                 launchSingleTop = true
                             }
@@ -384,13 +474,25 @@ class MainActivity : ComponentActivity() {
                             username = username,
                             onLogout = {
                                 nfcViewModel.setLoggedIn(false) // Mark the user as logged out
-                                TokenRepository.removeToken() // Remove the token on logout
+                                TokenRepository.resetRepo()
+                                CarIdStorage.removeSerial()
+                                CarIdStorage.removeLinkedCarId()
                                 navController.navigate("login") {
                                     popUpTo("helloWorld") { inclusive = true }
                                     launchSingleTop = true
                                 }
                             },
-                            onGoToExtra = { navController.navigate("message") },
+                            onGoToExtra = {
+                                val carId = CarIdStorage.getLinkedCarId()
+                                
+                                if (carId != null) {
+                                    nfcViewModel.setRefreshData(true)
+                                    navController.navigate("message") {
+                                        popUpTo("helloWorld") { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                                 },
                             registerPosMachine = { serialNumber, carPlate, password ->
                                 // Handle POS machine registration here
                                 registerPosMachine(serialNumber, carPlate, password)

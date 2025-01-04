@@ -15,7 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.livedata.observeAsState
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -25,25 +25,49 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavController
 import com.nexxserve.cavgodrivers.fragment.BookingDetails
 
 @Composable
 fun MessagePage(
     nfcViewModel: NfcViewModel,
-    bookingViewModel: BookingViewModel
+    bookingViewModel: BookingViewModel,
+    navController: NavController,
 ) {
     // Observe the message state from the ViewModel
     val message = nfcViewModel.message.value
     val bookings by bookingViewModel.bookings.observeAsState(initial = emptyList())
     val bookingId = nfcViewModel.bookingid.value
     var booking: BookingDetails? = null
-    var totalTickets by remember { mutableStateOf(0) }
+    var totalTickets by remember { mutableIntStateOf(0) }
+    val isloggedin = nfcViewModel.isLoggedIn.value
+    val CarId = CarIdStorage.getLinkedCarId()
+
+    if(CarId == null) {
+        Log.d("MessagePage", "Navigating to CarId Page")
+        CarIdStorage.removeSerial()
+        CarIdStorage.removeLinkedCarId()
+        navController.navigate("helloworld") {
+            popUpTo("message") {
+                inclusive = true
+            }
+        }
+    }
+
+    LaunchedEffect(isloggedin) {
+        if (!isloggedin) {
+            Log.d("MessagePage", "Navigating to Login Page")
+            navController.navigate("login") {
+                popUpTo("message") {
+                    inclusive = true
+                }
+            }
+        }
+    }
 
     LaunchedEffect(bookings) {
-        if (bookings != null) {
-            Log.d("MessagePage", "Bookings M: ${bookings.size}")
-            totalTickets = bookings.sumOf { it.numberOfTickets }
-        }
+        Log.d("MessagePage", "Bookings M: ${bookings.size}")
+        totalTickets = bookings.sumOf { it.numberOfTickets }
     }
 
 
@@ -56,40 +80,35 @@ fun MessagePage(
 //        }
 //    }
 
-    if (bookings != null) {
-        if (message == "valid" && bookingId != null && bookings.isNotEmpty())  {
+    if (message == "valid" && bookingId != null && bookings.isNotEmpty())  {
 
-            booking = bookings.find { it.id == bookingId }
-            if (booking != null) {
-                Log.d("MessagePage", "Found booking: ${booking.user.firstName}")
-            }
-
+        booking = bookings.find { it.id == bookingId }
+        if (booking != null) {
+            Log.d("MessagePage", "Found booking: ${booking.user?.firstName}")
         }
+
     }
 
     if (message == "valid" || message == "invalid") {
         nfcViewModel.resetMessage()
     }
 
-    if (bookings != null) {
-        Text(
-            text = "Bookings: $totalTickets",
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-                .background(
-                    color = Color.Cyan.copy(alpha = 0.8f),
-                    shape = RoundedCornerShape(8.dp)
-                )
-                .border(2.dp, Color.Blue, RoundedCornerShape(8.dp))
-                .padding(4.dp), // Additional padding inside
-            textAlign = TextAlign.Center,
-            fontSize = 30.sp,
+    Text(
+        text = "Bookings: $totalTickets",
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+            .background(
+                color = Color.Cyan.copy(alpha = 0.8f),
+                shape = RoundedCornerShape(8.dp)
+            )
+            .border(2.dp, Color.Blue, RoundedCornerShape(8.dp))
+            .padding(4.dp), // Additional padding inside
+        textAlign = TextAlign.Center,
+        fontSize = 30.sp,
 //            style = MaterialTheme.typography.displayLarge,
-            color = Color.Black
-        )
-
-    }
+        color = Color.Black
+    )
     // Define a default, valid, and invalid state
     when {
         message.isNullOrEmpty() -> {
@@ -144,7 +163,7 @@ fun MessageCard(
             // Display icon if available
             if (booking != null) {
                 Text(
-                    text = "👤 ${booking.user.firstName} ${booking.user.lastName}",
+                    text = "👤 ${booking.user?.firstName} ${booking.user?.lastName}",
                     style = TextStyle(fontSize = 20.sp, color = Color.White),
                     modifier = Modifier.padding(16.dp)
                 )

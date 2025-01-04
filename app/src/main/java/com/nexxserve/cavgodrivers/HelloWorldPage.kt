@@ -77,12 +77,19 @@ fun HelloWorldPage(
                         CoroutineScope(Dispatchers.IO).launch {
                             message = registerPosMachine(serialNumber!!, carPlate, password) // Pass the password to the function
                             isLoading = false
-                            if (message.contains("Successfully")) {
+                            if (message.contains("Successfully!")) {
                                 showRegistration = false
                                 isSerialEditable = false
                             } else {
                                 serialNumber = null
                             }
+                        }
+                        if (message.contains("Successfully!")) {
+                            Log.d(
+                                "HelloWorldPage",
+                                "POS Machine registered successfully ${CarIdStorage.getSerial()} ${CarIdStorage.getLinkedCarId()}"
+                            )
+                            onGoToExtra()
                         }
                     } else {
                         message = "Please fill in all fields"
@@ -122,7 +129,7 @@ fun HelloWorldPage(
             onClick = { onGoToExtra() },
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         ) {
-            Text("Go to Extra Page")
+            Text("Go to message")
         }
 
         Button(
@@ -176,6 +183,7 @@ suspend fun registerPosMachine(serialNumber: String, carPlate: String, password:
             val token = response.data?.registerPosMachine?.token
             val reftoken = response.data?.registerPosMachine?.refreshToken
             if (token != null) {
+                Log.d("RegisterPosMachine", "Token: $token Refresh Token: $reftoken")
                 TokenRepository.setToken(token)
                 if(reftoken != null) {
                     TokenRepository.setRefresh(reftoken)

@@ -1,0 +1,92 @@
+package com.nexxserve.cavgodrivers
+import android.content.Context
+import android.content.Intent
+import android.graphics.Bitmap
+import com.common.apiutil.CommonException
+import com.common.apiutil.printer.UsbThermalPrinter
+import com.common.apiutil.util.SystemUtil
+import com.common.apiutil.printer.ThermalPrinter
+import android.content.IntentFilter;
+
+
+class ThermalPrinterManager(context: Context) {
+    private var printer: UsbThermalPrinter? = null
+    // new ThermalPrinter(this@PrinterActivity)
+    val pIntentFilter = IntentFilter().apply {
+        addAction(Intent.ACTION_BATTERY_CHANGED)
+        addAction("android.intent.action.BATTERY_CAPACITY_EVENT")
+    }
+    registerReceiver(batteryReceiver, pIntentFilter)
+
+
+
+
+    init {
+        val printerType = detectPrinterType(context)
+        initializePrinter(context, printerType)
+    }
+
+    // Detects the type of printer connected
+    private fun detectPrinterType(context: Context): Int {
+        return SystemUtil.checkPrinter581(context)
+    }
+
+    // Initializes the printer based on its type
+    @Throws(CommonException::class)
+    private fun initializePrinter(context: Context, printerType: Int) {
+        when (printerType) {
+            PRINTER_80MM_USB_COMMON -> this.printer = UsbThermalPrinter(context)
+            PRINTER_SY581 -> this.printer =
+                UsbThermalPrinter(context) // Update for specific model if required
+            else -> throw IllegalArgumentException("Unsupported printer type.")
+        }
+    }
+
+    // Resets the printer
+    @Throws(CommonException::class)
+    fun resetPrinter() {
+        printer!!.reset()
+    }
+
+    // Sets print alignment
+    @Throws(CommonException::class)
+    fun setAlignment(alignment: Int) {
+        printer!!.setAlgin(alignment)
+    }
+
+    // Sets font size
+    @Throws(CommonException::class)
+    fun setFontSize(size: Int) {
+        printer!!.setTextSize(size)
+    }
+
+    // Adds content to be printed
+    @Throws(CommonException::class)
+    fun addContent(content: String?) {
+        printer!!.addString(content)
+    }
+
+    // Starts the printing process
+    @Throws(CommonException::class)
+    fun startPrinting() {
+        printer!!.printString()
+    }
+
+
+
+    // Example: Prints a QR code
+    @Throws(CommonException::class)
+    fun printQRCode(qrCode: Bitmap?) {
+        printer!!.printLogo(qrCode, true)
+    }
+
+    // Releases the printer (if required)
+    fun releasePrinter() {
+        this.printer = null
+    }
+
+    companion object {
+        private const val PRINTER_80MM_USB_COMMON = 1 // Example constants for printer types
+        private const val PRINTER_SY581 = 2
+    }
+}

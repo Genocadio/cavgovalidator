@@ -11,24 +11,21 @@ import com.apollographql.apollo.network.http.HttpInterceptorChain
 import com.apollographql.apollo.network.ws.GraphQLWsProtocol
 import com.apollographql.apollo.network.ws.WebSocketNetworkTransport
 
-class AuthorizationInterceptor : HttpInterceptor {
+class AuthorizationInterceptor() : HttpInterceptor {
+
+    private  var token= TokenRepository.getToken()
 
     override suspend fun intercept(request: HttpRequest, chain: HttpInterceptorChain): HttpResponse {
-        val token = TokenRepository.getToken() // Fetch the token dynamically
+        // You can implement token refresh logic if needed
+        val requestBuilder = request.newBuilder()
         Log.d("AuthorizationInterceptor", "Token: $token")
 
-        val requestBuilder = request.newBuilder()
-        if (!token.isNullOrEmpty()) {
-            // Adding the token to the Authorization header
-            requestBuilder.addHeader("Authorization", "Bearer $token")
-        } else {
-            Log.e("AuthorizationInterceptor", "Token is null or empty")
-        }
+        // Adding the token to the Authorization header
+        requestBuilder.addHeader("Authorization", "Bearer $token")
 
         return chain.proceed(requestBuilder.build())
     }
 }
-
 val cacheFactory = MemoryCacheFactory(maxSizeBytes = 10 * 1024 * 1024)
 
 val apolloClient = ApolloClient.Builder()

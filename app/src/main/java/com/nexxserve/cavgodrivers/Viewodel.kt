@@ -27,11 +27,18 @@ class NfcViewModel : ViewModel() {
     private val _bookingid = mutableStateOf<String?>(null)
     val bookingid: State<String?> get() = _bookingid
 
+    private val _refreshdata = mutableStateOf(false)
+    val refreshdata: State<Boolean> get() = _refreshdata
+
 
     private val messageDelayMillis = 10000L
 
     fun setBookingId(id: String) {
         if (id.isNotBlank()) _bookingid.value = id
+    }
+
+    fun setRefreshData(refresh: Boolean) {
+        _refreshdata.value = refresh
     }
 
     fun setIsRefreshing(isRefreshing: Boolean) {
