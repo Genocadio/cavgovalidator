@@ -1,5 +1,6 @@
 package com.nexxserve.cavgodrivers
 
+import NfcViewModel
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -12,13 +13,17 @@ import kotlinx.coroutines.launch
 import android.util.Log
 import com.apollographql.apollo.api.Optional
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import com.nexxserve.cavgodrivers.TokenRepository.getRefresh
+import com.nexxserve.cavgodrivers.TokenRepository.getToken
 
 
 @Composable
 fun HelloWorldPage(
-    username: String,
     onLogout: () -> Unit,
     onGoToExtra: () -> Unit,
+    tripViewModel: TripViewModel,
+    bookingViewModel: BookingViewModel,
+    nfcViewModel: NfcViewModel,
     registerPosMachine: suspend (serialNumber: String, carPlate: String, password: String) -> String, // Now includes password
     updateCarPlate: suspend (serialNumber: String, plateNumber: String) -> String // Return message instead of throwing errors
 ) {
@@ -31,11 +36,6 @@ fun HelloWorldPage(
     var message by remember { mutableStateOf("") }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        Text(
-            text = "Hello, $username",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
 
         if (isLoading) {
             CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -126,7 +126,24 @@ fun HelloWorldPage(
         }
 
         Button(
-            onClick = { onGoToExtra() },
+            onClick = { onGoToExtra()
+                TripListenerManager.startListeningForTrips(CarIdStorage.getLinkedCarId()!!,
+                    onUpdate = { newTrips ->
+                        if(newTrips.isNotEmpty()) {
+                            tripViewModel.setTrips(newTrips)
+                            val tripId = CarIdStorage.getTripId()
+                            if (tripId != null) {
+                                Log.d("hellow", "helloworld action")
+                                CoroutineScope(Dispatchers.IO).launch {
+                                    BookingListenerManager.fetchBookingsForTrip(tripId, bookingViewModel, nfcViewModel)
+                                    BookingListenerManager.startListeningForBookings(tripId, bookingViewModel)
+                                }
+                            }
+                        }
+                    })
+                CoroutineScope(Dispatchers.IO).launch {
+
+                }},
             modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp)
         ) {
             Text("Go to message")
@@ -188,6 +205,11 @@ suspend fun registerPosMachine(serialNumber: String, carPlate: String, password:
                 if(reftoken != null) {
                     TokenRepository.setRefresh(reftoken)
                 }
+                if(getToken() != null && getRefresh() != null) {
+                    CarIdStorage.removeId()
+                    Log.d("Auth query", "Tokens Added")
+
+                }
             }
 
             "POS Machine Registered Successfully!"
@@ -226,7 +248,9 @@ suspend fun updatePosMachine(serialNumber: String?, plateNumber: String?): Strin
             response.data?.updatePosMachine?.success == true -> {
                 val linkedCarId = response.data?.updatePosMachine?.data?.linkedCar?.id
                 if (linkedCarId != null) {
+
                     CarIdStorage.saveLinkedCarId(linkedCarId)
+                    CarIdStorage.removeId()
                 }
                 "POS Machine Updated Successfully!"
             }

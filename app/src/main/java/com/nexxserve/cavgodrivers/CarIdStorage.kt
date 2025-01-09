@@ -2,6 +2,7 @@ package com.nexxserve.cavgodrivers
 
 import NfcViewModel
 import android.content.Context
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
 
@@ -13,6 +14,8 @@ object CarIdStorage {
 
     private lateinit var sharedPreferences: EncryptedSharedPreferences
     private var nfcViewModel: NfcViewModel? = null
+    private var bookingViewModel: BookingViewModel? = null
+
 
     /**
      * Initialize SharedPreferences (must be called once in the application lifecycle).
@@ -54,14 +57,15 @@ object CarIdStorage {
         return sharedPreferences.getString("tripId", null)
     }
 
-    fun saveNfcId(nfcId: String) {
+    fun saveId(nfcId: String) {
         sharedPreferences.edit().putString("nfcId", nfcId).apply()
     }
 
-    fun getNfcId(): String? {
+
+    fun getId(): String? {
         return sharedPreferences.getString("nfcId", null)
     }
-    fun removeNfcId() {
+    fun removeId() {
         sharedPreferences.edit().remove("nfcId").apply()
     }
 

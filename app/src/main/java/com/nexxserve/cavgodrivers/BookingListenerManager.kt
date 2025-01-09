@@ -1,5 +1,6 @@
 package com.nexxserve.cavgodrivers
 
+import NfcViewModel
 import android.util.Log
 import com.apollographql.apollo.api.Optional
 import kotlinx.coroutines.flow.*
@@ -9,39 +10,48 @@ object BookingListenerManager {
 
 
     // Fetch bookings for the provided tripId
-    suspend fun fetchBookingsForTrip(tripId: String, viewModel: BookingViewModel) {
+    suspend fun fetchBookingsForTrip(tripId: String, viewModel: BookingViewModel, nfcViewModel: NfcViewModel) {
         viewModel.setLoading(true)
+        TokenRepository.getToken()
+        val isrefreshing = nfcViewModel.isRefreshing.value
+        val isloggedin = nfcViewModel.isLoggedIn.value
         try {
-            val response = apolloClient.query(GetBookingsQuery(Optional.Present(tripId))).execute()
-            val bookingsData = response.data?.getBookings?.data ?: emptyList()
-            Log.d("BookingListenerManager", "Query status ${response.data?.getBookings?.message} bookings for trip ID: $tripId")
+            if (!isrefreshing!! && isloggedin) {
+                val response = apolloClient.query(GetBookingsQuery(Optional.Present(tripId))).execute()
+                val bookingsData = response.data?.getBookings?.data ?: emptyList()
+                Log.d("BookingListenerManager", "Query status ${response.data?.getBookings?.message} bookings for trip ID: $tripId")
 
-            val bookings = bookingsData.mapNotNull { booking ->
-                try {
-                    booking.bookingDetails
-                } catch (e: Exception) {
-                    Log.e("BookingListenerManager", "Error processing booking: ${e.message}")
-                    null
+                val bookings = bookingsData.mapNotNull { booking ->
+                    try {
+                        booking.bookingDetails
+                    } catch (e: Exception) {
+                        Log.e("BookingListenerManager", "Error processing booking: ${e.message}")
+                        null
+                    }
                 }
-            }
-            Log.d(
-                "BookingListenerManager",
-                "Fetched ${bookings.size} bookings for trip ID: $tripId "
-            )
-            if(bookings.isEmpty()) {
-                Log.d("BookingListenerManager", "No bookings found for trip ID: $tripId")
-                if (response.data?.getBookings?.message == "Unauthorized access") {
-                    TokenRepository.removeToken()
-                    TokenRepository.getToken()
+                Log.d(
+                    "BookingListenerManager",
+                    "Fetched ${bookings.size} bookings for trip ID: $tripId "
+                )
+                if(bookings.isEmpty()) {
+                    Log.d("BookingListenerManager", "No bookings found for trip ID: $tripId")
+                    if (response.data?.getBookings?.message == "Unauthorized access") {
+                        Log.d("BookingListenerManager", "Unauthorized access for trip ID: $tripId")
+//                        TokenRepository.removeToken()
+                        TokenRepository.getToken()
 
-                    Log.e("BookingListenerManager", "Error fetching bookings for trip ID: $tripId: ${response.errors}")
+                        Log.e("BookingListenerManager", "Error fetching bookings for trip ID: $tripId: ${response.errors}")
+                    }
                 }
+                viewModel.setBookings(bookings)
+            } else {
+                Log.d("BookingListenerManager", "Already refreshing token ")
             }
-            viewModel.setBookings(bookings)
+
 
 
         } catch (e: Exception) {
-            Log.e("BookingListenerManager", "Error fetching bookings for trip ID: $tripId", e)
+            Log.e("BookingListenerManager", "Error fetching bookings for trip ID: $tripId $isloggedin, $isrefreshing", e)
 
         } finally {
             viewModel.setLoading(false)

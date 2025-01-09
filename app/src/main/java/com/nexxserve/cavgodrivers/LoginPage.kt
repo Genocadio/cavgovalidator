@@ -13,7 +13,7 @@ import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.launch
 
 @Composable
-fun LoginPage(onLoginSuccess: (String, String) -> Unit) {
+fun LoginPage(onLoginSuccess: () -> Unit) {
     // State to manage TextField values
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -85,7 +85,7 @@ fun LoginPage(onLoginSuccess: (String, String) -> Unit) {
                     val ok = login(email, password)
                     if (ok) {
                         isLoading = false
-                        onLoginSuccess(email, password)
+                        onLoginSuccess()
                     } else {
                         isLoading = false
                         errorMessage = "Login failed. Check your email or password."
@@ -127,6 +127,7 @@ suspend fun login(email: String, password: String): Boolean {
             }
             else -> {
                 TokenRepository.setToken(response.data!!.loginUser.data!!.token)
+                response.data!!.loginUser.data!!.user?.let { CarIdStorage.saveId(it.id) }
                 Log.i("Login", "Login successful" + TokenRepository.getToken())
                 true
             }

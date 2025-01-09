@@ -2,6 +2,7 @@ mutation LoginUser($email: String!, $password: String!) {
     loginUser(email: $email, password: $password) {
         data {
             user {
+                id
                 firstName
                 lastName
             }

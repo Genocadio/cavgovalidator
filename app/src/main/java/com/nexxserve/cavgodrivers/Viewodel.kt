@@ -1,6 +1,8 @@
 import androidx.lifecycle.ViewModel
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.State
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -21,8 +23,8 @@ class NfcViewModel : ViewModel() {
     private val _loggedIn = mutableStateOf(false)
     val isLoggedIn: State<Boolean> get() = _loggedIn
 
-    private val _isRefreshing = mutableStateOf(false)
-    val isRefreshing: State<Boolean> get() = _isRefreshing
+    private val _isRefreshing = MutableLiveData(false)
+    val isRefreshing: LiveData<Boolean> get() = _isRefreshing
 
     private val _bookingid = mutableStateOf<String?>(null)
     val bookingid: State<String?> get() = _bookingid
@@ -30,8 +32,15 @@ class NfcViewModel : ViewModel() {
     private val _refreshdata = mutableStateOf(false)
     val refreshdata: State<Boolean> get() = _refreshdata
 
+    private val _networkAvailable = mutableStateOf(false)
+    val networkAvailable: State<Boolean> get() = _networkAvailable
+
 
     private val messageDelayMillis = 10000L
+
+    fun setNetworkAvailable(available: Boolean) {
+        _networkAvailable.value = available
+    }
 
     fun setBookingId(id: String) {
         if (id.isNotBlank()) _bookingid.value = id
@@ -89,7 +98,7 @@ class NfcViewModel : ViewModel() {
         }
     }
     fun clearMessage() {
-        _message.value = ""
+        _message.value = "Tap Your Card or Scan QR Code"
     }
 
 }

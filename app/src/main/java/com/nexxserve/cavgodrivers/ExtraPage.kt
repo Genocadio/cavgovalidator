@@ -30,7 +30,6 @@ fun ExtraPage(
     navController: NavController,
     onGoBack: () -> Unit,
     bookingViewModel: BookingViewModel,
-    nfcViewModel: NfcViewModel,
     onBookingSuccess: () -> Unit,
     tripViewModel: TripViewModel
 ) {
@@ -64,7 +63,7 @@ fun ExtraPage(
                     }
                 } else if (message.isNotEmpty() && message == "Unauthorized") {
                     Log.w("ExtraPage", "Unauthorized access")
-                    TokenRepository.removeToken()
+//                    TokenRepository.removeToken()
                     TokenRepository.getToken()
                     getCard(nfcId)
 
