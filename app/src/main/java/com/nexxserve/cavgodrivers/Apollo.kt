@@ -22,7 +22,7 @@ class AuthorizationInterceptor : HttpInterceptor {
             // Adding the token to the Authorization header
             requestBuilder.addHeader("Authorization", "Bearer $token")
         } else {
-            Log.e("AuthorizationInterceptor", "Token is null or empty")
+            Log.e("AuthorizationInterceptor", "Token is null or empty or refreshing")
         }
 
         return chain.proceed(requestBuilder.build())
@@ -41,7 +41,6 @@ val apolloClient = ApolloClient.Builder()
             .serverUrl("wss://cavgo.onrender.com/graphql")
             .build()
     )
-
 
     .build()
 

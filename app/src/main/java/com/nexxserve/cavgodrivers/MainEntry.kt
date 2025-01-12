@@ -3,11 +3,8 @@ package com.nexxserve.cavgodrivers
 
 import NfcViewModel
 import android.annotation.SuppressLint
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
-import android.view.WindowInsets
-import android.view.WindowInsetsController
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.viewModels
@@ -45,7 +42,7 @@ class MainActivity : ComponentActivity() {
         var token = TokenRepository.getToken()
         nfcViewModel.isRefreshing.observe(this) { isRefreshing ->
             if (!isRefreshing) {
-                Log.d("Xtest", "Refreshing has completed")
+                Log.d("Xctest", "Refreshing has completed")
                 lifecycleScope.launch {
                     // Wait for token to be fetched or refreshed
                     token = TokenRepository.getToken()
@@ -93,7 +90,7 @@ class MainActivity : ComponentActivity() {
         SDKUtil.getInstance(this).initSDK()
         soundManagement = SoundManagement.getInstance(this)
         notificationHelper = NotificationHelper.getInstance(this)
-        networkMonitor = NetworkMonitor(this, bookingViewModel, notificationHelper, nfcViewModel)
+        networkMonitor = NetworkMonitor(this, bookingViewModel, nfcViewModel, notificationHelper)
         TripListenerManager.initialize(this)
         qrCodeScannerUtil = QRCodeScannerUtil(this)
         mCommonUtil = CommonUtil(this)
@@ -104,7 +101,19 @@ class MainActivity : ComponentActivity() {
         mSystemLib!!.showStatusBar()
         mSystemLib!!.showNavigationBar()
 
-        observeRefreshingState()
+//        observeRefreshingState()
+
+        nfcViewModel.networkAvailable.observe(this) { networkAvailable ->
+            Log.d("Main",  "Mornitoring network")
+            if(networkAvailable) {
+                Log.d("MAin", "Network good")
+                observeRefreshingState()
+            }
+            else {
+                Log.w("Main", "NetworkLost")
+            }
+
+        }
 
 
 
@@ -171,7 +180,8 @@ class MainActivity : ComponentActivity() {
             Log.d("Main", "Token is not null")
         } else {
             val isRefreshing = nfcViewModel.isRefreshing.value
-            if(!isRefreshing!!) {
+            val retokenise = TokenRepository.getRefresh()
+            if(retokenise == null) {
                 Log.d("Main", "Token is null and not refreshing")
                 nfcViewModel.setLoggedIn(false)
             } else {
@@ -273,15 +283,21 @@ class MainActivity : ComponentActivity() {
                         }
                     )
                 } else {
-                    LoginPage(
-                        onLoginSuccess = {
-                            // Perform login logic
-                            nfcViewModel.setLoggedIn(true) // Mark the user as logged in
-                            // Navigate to HelloWorldPage
+                    val retokenise = TokenRepository.getRefresh()
+                    if(retokenise != null) {
+                        LoadingDots()
+                    } else {
+                        Log.d("MAinissue", "$retokenise")
+                        LoginPage(
+                            onLoginSuccess = {
+                                // Perform login logic
+                                nfcViewModel.setLoggedIn(true) // Mark the user as logged in
+                                // Navigate to HelloWorldPage
 
-                        }
+                            }
 
-                    )
+                        )
+                    }
                 }
             }
         }
@@ -308,7 +324,20 @@ class MainActivity : ComponentActivity() {
         qrCodeScannerUtil.openScanner(9600)
 
         // Ensure Token is refreshed before proceeding with other actions
-        observeRefreshingState()
+        Log.d("Resuming", "resume")
+        nfcViewModel.networkAvailable.observe(this) { networkAvailable ->
+            Log.d("Main",  "Mornitoring network")
+            if(networkAvailable) {
+                Log.d("MAin", "Network good")
+                observeRefreshingState()
+            }
+            else {
+                Log.w("Main", "NetworkLost")
+            }
+
+        }
+
+//        observeRefreshingState()
 //        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
 //            val windowInsetsController = window.insetsController
 //            windowInsetsController?.hide(WindowInsets.Type.statusBars() or WindowInsets.Type.navigationBars())
@@ -328,6 +357,7 @@ class MainActivity : ComponentActivity() {
     override fun onPause() {
         super.onPause()
         TripListenerManager.stopListening()
+        nfcViewModel.setNetworkAvailable(false)
         networkMonitor.stopMonitoring()
         nfcReaderHelper.disableNfcReader(this)
         qrCodeScannerUtil.closeScanner()

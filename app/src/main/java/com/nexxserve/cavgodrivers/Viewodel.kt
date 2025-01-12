@@ -20,7 +20,7 @@ class NfcViewModel : ViewModel() {
     private val _qrcodeData = mutableStateOf<String?>(null)
     val qrcodeData: State<String?> get() = _qrcodeData
 
-    private val _loggedIn = mutableStateOf(false)
+    private val _loggedIn = mutableStateOf(true)
     val isLoggedIn: State<Boolean> get() = _loggedIn
 
     private val _isRefreshing = MutableLiveData(false)
@@ -32,14 +32,14 @@ class NfcViewModel : ViewModel() {
     private val _refreshdata = mutableStateOf(false)
     val refreshdata: State<Boolean> get() = _refreshdata
 
-    private val _networkAvailable = mutableStateOf(false)
-    val networkAvailable: State<Boolean> get() = _networkAvailable
+    private val _networkAvailable = MutableLiveData(false)
+    val networkAvailable: LiveData<Boolean> get() = _networkAvailable
 
 
     private val messageDelayMillis = 10000L
 
     fun setNetworkAvailable(available: Boolean) {
-        _networkAvailable.value = available
+        _networkAvailable.postValue(available)
     }
 
     fun setBookingId(id: String) {
@@ -51,7 +51,7 @@ class NfcViewModel : ViewModel() {
     }
 
     fun setIsRefreshing(isRefreshing: Boolean) {
-        _isRefreshing.value = isRefreshing
+        _isRefreshing.postValue(isRefreshing)
     }
 
     fun setLoggedIn(isLoggedIn: Boolean) {

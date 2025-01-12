@@ -43,7 +43,7 @@ object TokenRepository {
         val netStatus = nfcViewModel.networkAvailable.value
 
         // Check network availability
-        if (!netStatus) {
+        if (!netStatus!!) {
             Log.d("Auth", "Network is not available")
             return token
         }
@@ -82,7 +82,10 @@ object TokenRepository {
 
         // Case 4: Refresh token is null (unexpected edge case)
         Log.d("Auth", "Refresh token is null")
-        handleMissingRefreshToken()
+        if (reftoken == null) {
+            handleMissingRefreshToken()
+            
+        }
 
         Log.d("Auth", "Returning token")
         return preferences.getString(KEY_TOKEN, null) // Return existing or null token

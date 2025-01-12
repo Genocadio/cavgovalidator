@@ -57,11 +57,7 @@ fun MessagePage(
     LaunchedEffect(isloggedin) {
         if (!isloggedin) {
             Log.d("MessagePage", "Navigating to Login Page")
-            navController.navigate("login") {
-                popUpTo("message") {
-                    inclusive = true
-                }
-            }
+            TokenRepository.getToken()
         }
     }
 
