@@ -123,6 +123,7 @@ dependencies {
     implementation(libs.firebase.firestore.ktx)
     implementation(libs.androidx.espresso.core)
     implementation(libs.androidx.runtime.livedata)
+    implementation(libs.androidx.media3.common.ktx)
 
     // Test dependencies
     testImplementation(libs.junit)

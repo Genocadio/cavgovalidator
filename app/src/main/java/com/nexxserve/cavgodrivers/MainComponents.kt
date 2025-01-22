@@ -105,20 +105,20 @@ fun MainApp(navController: NavHostController, nfcViewModel: NfcViewModel, bookin
                 }
             }
         }
-//        LaunchedEffect(message) {
-//            Log.d("NFC change", "Message changed: $message")
-//
-//            if (message == "valid") {
-//                turnOnLights("off")
-//                turnOnLights("green")
-//            } else if (message == "invalid") {
-//                turnOnLights("off")
-//                turnOnLights("red")
-//            } else {
-//                Log.d("NFC change", "Message changed to swich: $message")
-//                turnOnLights("off")
-//            }
-//        }
+        LaunchedEffect(message) {
+            Log.d("NFC change", "Message changed: $message")
+
+            if (message == "valid") {
+                turnOnLights("off")
+                turnOnLights("green")
+            } else if (message == "invalid") {
+                turnOnLights("off")
+                turnOnLights("red")
+            } else {
+                Log.d("NFC change", "Message changed to swich: $message")
+                turnOnLights("off")
+            }
+        }
 
         LaunchedEffect(qrCodeData) {
             if (qrCodeData != null) {
